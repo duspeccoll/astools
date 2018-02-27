@@ -5,9 +5,9 @@
 #
 # You could use this as the basis for other batch find/replace processes if you wanted.
 
-import json, ConfigParser, requests
+import json, configparser, requests
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read('local_settings.cfg')
 
 dictionary = {
@@ -26,11 +26,11 @@ session = auth['session']
 headers = {'X-ArchivesSpace-Session': session}
 
 def getString(message):
-	s = raw_input(message)
+	s = input(message)
 	if s:
 		return s
 	else:
-		print "This field is required."
+		print("This field is required.")
 		getString(message)
 
 def processChildren(child, old, new):
@@ -40,9 +40,9 @@ def processChildren(child, old, new):
 		ao['component_id'] = new_id
 		post = requests.post(resourceURL + child['record_uri'],headers=headers,data=json.dumps(ao))
 		if(post.status_code == requests.codes.ok):
-			print "Replaced component ID: " + ao['component_id']
+			print("Replaced component ID:" + ao['component_id'])
 		else:
-			print post.text
+			print(post.text)
 	children = child['children']
 	for record in children:
 		processChildren(record, old, new)

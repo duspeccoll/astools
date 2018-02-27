@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-import json, ConfigParser, requests
+import json, configparser, requests
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read('local_settings.cfg')
 
 dictionary = {
-  'baseURL': config.get('ArchivesSpace', 'baseURL'), 
-  'repository':config.get('ArchivesSpace', 'repository'), 
-  'user': config.get('ArchivesSpace', 'user'), 
+  'baseURL': config.get('ArchivesSpace', 'baseURL'),
+  'repository':config.get('ArchivesSpace', 'repository'),
+  'user': config.get('ArchivesSpace', 'user'),
   'password': config.get('ArchivesSpace', 'password')
 }
 
@@ -45,6 +45,6 @@ for agent_type in agent_types:
 					name['authority_id'] = new_id
 					post = requests.post(resourceURL + "/agents/" + agent_type + "/" + str(n),headers=headers,data=json.dumps(agent))
 					if(post.status_code == requests.codes.ok):
-						print "Replaced URL prefix for " + agent['title']
+						print("Replaced URL prefix for" + agent['title'])
 					else:
-						print post.text
+						print(post.text)
