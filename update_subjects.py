@@ -20,15 +20,16 @@ auth = requests.post('{baseURL}/users/{user}/login?password={password}&expiring=
 session = auth['session']
 headers = {'X-ArchivesSpace-Session': session}
 
-# We wanted to strip the URI prefixes from authorized name forms for our agents so we could construct them dynamically using the provided name source. So that's what this does:
-
 agent_types = ['people', 'corporate_entities', 'families']
-local = ["local", "ingest", "prov"]
+local = ["local","prov","tucua","built"]
 uri_prefix = {
-  'nad': "http://id.loc.gov/authorities/names/",
-  'naf': "http://id.loc.gov/authorities/names/",
-  'ulan': "http://vocab.getty.edu/ulan/",
+  'aat': "http://vocab.getty.edu/aat/",
+  'lcgft': "http://id.loc.gov/authorities/genreForms",
+  'lcnaf': "http://id.loc.gov/authorities/names/",
   'lcsh': "http://id.loc.gov/authorities/subjects/",
+  'lcshg': "http://id.loc.gov/authorities/subjects/",
+  'tgm': "http://id.loc.gov/vocabulary/graphicMaterials/",
+  'tgn': "http://vocab.getty.edu/tgn",
   'viaf': "http://viaf.org/viaf/"
 }
 
@@ -40,7 +41,7 @@ def get_object(url,max_retries=10,timeout=5):
     )
     for i in range(max_retries):
         try:
-            result = requests.get(url,headers=headers).json()
+            result = requests.get(url,headers=headers)
         except retry_on_exceptions:
             print("Connection failed. Retry in five seconds... ")
             continue
@@ -61,22 +62,17 @@ def post_object(url,agent,max_retries=10,timeout=5):
             continue
         else:
             if(post.status_code == requests.codes.ok):
-                print("Updated authority ID for " + url)
+                print("Updated authority ID for %s" % url)
             else:
                 error = post.json()
-                print("Error: " + error['error'])
+                print("Error: %s" % error['error'])
             break
 
-for agent_type in agent_types:
-    url = "%s/agents/%s?all_ids=true" % (resourceURL, agent_type)
-    ids = requests.get(url,headers=headers).json()
-    for val in ids:
-        url = "%s/agents/%s/%d" % (resourceURL, agent_type, val)
-        agent = get_object(url)
-        names = agent['names']
-        for name in names:
-            if name['authorized'] is True:
-                if('source' in name and name['source'] not in local and 'authority_id' in name and name['authority_id'].startswith(uri_prefix[name['source']])):
-                    new_id = name['authority_id'].replace(uri_prefix[name['source']], '')
-                    name['authority_id'] = new_id
-                    post_object(url,agent)
+ids = requests.get(("%s/subjects?all_ids=true" % resourceURL),headers=headers).json()
+for val in ids:
+    url = "%s/subjects/%d" % (resourceURL, val)
+    subj = get_object(url).json()
+    if('source' in subj and subj['source'] not in local and 'authority_id' in subj and subj['authority_id'].startswith(uri_prefix[subj['source']])):
+        new_id = subj['authority_id'].replace(uri_prefix[subj['source']], '')
+        subj['authority_id'] = new_id
+        post_object(url, subj)
