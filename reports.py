@@ -30,6 +30,21 @@ class Printer():
         sys.stdout.write("\r\x1b[K"+data.__str__())
         sys.stdout.flush
 
+def get_object(url,max_retries=10,timeout=5):
+    retry_on_exceptions = (
+        requests.exceptions.Timeout,
+        requests.exceptions.ConnectionError,
+        requests.exceptions.HTTPError
+    )
+    for i in range(max_retries):
+        try:
+            result = requests.get(url,headers=headers)
+        except retry_on_exceptions:
+            print("Connection lost. Retry in five seconds... ")
+            continue
+        else:
+            return result
+
 def string_from_dict(msg, d):
     print(msg)
     for k in sorted(d):
@@ -48,15 +63,15 @@ def run_report(jsonmodel):
     else:
         request_url = repositoryBaseURL + request_url
 
-    ids = requests.get(request_url + "?all_ids=true",headers=headers).json()
+    ids = get_object(request_url + "?all_ids=true").json()
     jsonmodel = jsonmodel.replace('agents/', '')
     file_out = config.get('Destinations', 'home') + "/%s_report.json" % jsonmodel
     f = open(file_out, "w")
     f.write("{\"" + jsonmodel + "\":[")
-    for idx, id in enumerate(ids, start=1):
+    for idx, val in enumerate(ids,start=1):
         output = "Writing %s (%d of %d)... " % (jsonmodel, idx, len(ids))
         Printer(output)
-        json = requests.get(request_url + "/" + str(id),headers=headers)
+        json = get_object("%s/%d" % (request_url, val))
         f.write(json.text.rstrip())
         if idx < len(ids):
             f.write(",")
