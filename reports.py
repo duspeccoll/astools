@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# This script just logs you into your ArchivesSpace backend and prints a session ID.
-# You can copy it into whatever script you want to write to do useful things with your database.
-
 import configparser, requests, json, os, sys
 
 config = configparser.ConfigParser()
@@ -19,12 +16,12 @@ repositoryBaseURL = '{baseURL}/repositories/{repository}'.format(**dictionary)
 resourceURL = '{baseURL}'.format(**dictionary)
 
 auth = requests.post('{baseURL}/users/{user}/login?password={password}&expiring=false'.format(**dictionary)).json()
-session = auth['session']
-headers = {'X-ArchivesSpace-Session': session}
+headers = {'X-ArchivesSpace-Session': auth['session']}
 
 data_models = { "1": "resources", "2": "archival_objects", "3": "agents", "4": "subjects", "5": "digital_objects", "6": "accessions", "7": "top_containers", "8": "container_profiles", "9": "events" }
 agent_types = ["people", "corporate_entities", "families", "software"]
 
+# I don't remember where I found the code for this class but it ensures that the script status update prints to one row only
 class Printer():
     def __init__(self, data):
         sys.stdout.write("\r\x1b[K"+data.__str__())
@@ -69,8 +66,7 @@ def run_report(jsonmodel):
     f = open(file_out, "w")
     f.write("{\"" + jsonmodel + "\":[")
     for idx, val in enumerate(ids,start=1):
-        output = "Writing %s (%d of %d)... " % (jsonmodel, idx, len(ids))
-        Printer(output)
+        Printer("Writing %s (%d of %d)... " % (jsonmodel, idx, len(ids)))
         json = get_object("%s/%d" % (request_url, val))
         f.write(json.text.rstrip())
         if idx < len(ids):
