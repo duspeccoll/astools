@@ -1,38 +1,36 @@
 #!/usr/bin/env python
 
-import json, configparser, requests
+# this only works on subjects but it would be rad if it worked on any data model you want
 
+import json, configparser, requests, argparse, os
+
+# let configparser get our local settings
 config = configparser.ConfigParser()
 config.read('local_settings.cfg')
-
 dictionary = {
   'baseURL': config.get('ArchivesSpace', 'baseURL'),
   'repository':config.get('ArchivesSpace', 'repository'),
   'user': config.get('ArchivesSpace', 'user'),
-  'password': config.get('ArchivesSpace', 'password')
+  'password': config.get('ArchivesSpace', 'password'),
+  'path': config.get('Destinations', 'home')
 }
 
+# let argparse set up arguments for passing a file to it
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--file", help="A file of URIs to pass to ArchivesSpace")
+args = parser.parse_args()
+
+# set up ArchivesSpace backend URLs
 repositoryBaseURL = '{baseURL}/repositories/{repository}'.format(**dictionary)
 resourceURL = '{baseURL}'.format(**dictionary)
+path = '{path}'.format(**dictionary)
 
+# get a backend session
 auth = requests.post('{baseURL}/users/{user}/login?password={password}&expiring=false'.format(**dictionary)).json()
-
 session = auth['session']
 headers = {'X-ArchivesSpace-Session': session}
 
-agent_types = ['people', 'corporate_entities', 'families']
-local = ["local","prov","tucua","built"]
-uri_prefix = {
-  'aat': "http://vocab.getty.edu/aat/",
-  'lcgft': "http://id.loc.gov/authorities/genreForms",
-  'lcnaf': "http://id.loc.gov/authorities/names/",
-  'lcsh': "http://id.loc.gov/authorities/subjects/",
-  'lcshg': "http://id.loc.gov/authorities/subjects/",
-  'tgm': "http://id.loc.gov/vocabulary/graphicMaterials/",
-  'tgn': "http://vocab.getty.edu/tgn",
-  'viaf': "http://viaf.org/viaf/"
-}
-
+# get an object from the API
 def get_object(url,max_retries=10,timeout=5):
     retry_on_exceptions = (
         requests.exceptions.Timeout,
@@ -48,31 +46,59 @@ def get_object(url,max_retries=10,timeout=5):
         else:
             return result
 
-def post_object(url,agent,max_retries=10,timeout=5):
+# post a revised object to the API
+def post_object(url,obj,log,max_retries=10,timeout=5):
     retry_on_exceptions = (
         requests.exceptions.Timeout,
         requests.exceptions.ConnectionError,
         requests.exceptions.HTTPError
     )
+    f = open(log, 'a')
     for i in range(max_retries):
         try:
-            post = requests.post(url,headers=headers,data=json.dumps(agent))
+            post = requests.post(url,headers=headers,data=json.dumps(obj))
         except retry_on_exceptions:
             print("Connection failed. Retry in five seconds... ")
             continue
         else:
             if(post.status_code == requests.codes.ok):
-                print("Updated authority ID for %s" % url)
+                print("%s updated" % url)
+                f.write("%s updated\n" % url)
             else:
                 error = post.json()
-                print("Error: %s" % error['error'])
+                print("Error while processing %s: %s" % (url, error['error']))
+                f.write("Error while processing %s: %s\n" % (url, error['error']))
             break
 
-ids = requests.get(("%s/subjects?all_ids=true" % resourceURL),headers=headers).json()
-for val in ids:
-    url = "%s/subjects/%d" % (resourceURL, val)
-    subj = get_object(url).json()
-    if('source' in subj and subj['source'] not in local and 'authority_id' in subj and subj['authority_id'].startswith(uri_prefix[subj['source']])):
-        new_id = subj['authority_id'].replace(uri_prefix[subj['source']], '')
-        subj['authority_id'] = new_id
-        post_object(url, subj)
+    f.close()
+
+# actually do whatever find/replace operation you want to do
+def process_object(obj):
+    # do whatever you need to do here...
+
+    # ...then return the processed object to the script
+    return obj
+
+log = "%s/logfile.txt" % path
+try:
+    os.remove(log)
+except OSError:
+    pass
+
+# if a file of URIs is provided, work on that file; otherwise work on all subjects
+if args.file:
+    f = open(args.file, "r")
+    for uri in f:
+        url = "%s%s" % (resourceURL, uri.rstrip())
+        subj = get_object(url).json()
+        subj = process_object(subj)
+        post_object(url, subj, log)
+else:
+    ids = requests.get(("%s/subjects?all_ids=true" % resourceURL),headers=headers).json()
+    for val in ids:
+        url = "%s/subjects/%d" % (resourceURL, val)
+        subj = get_object(url).json()
+        subj = process_object(subj)
+        post_object(url, subj, log)
+
+print("Script done and results written to %s" % log)
