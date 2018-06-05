@@ -2,7 +2,7 @@
 
 # this only works on subjects but it would be rad if it worked on any data model you want
 
-import json, configparser, requests, argparse, os
+import json, configparser, requests, argparse, os, re, csv
 
 # let configparser get our local settings
 config = configparser.ConfigParser()
@@ -54,25 +54,31 @@ def post_object(url,obj,log,max_retries=10,timeout=5):
         requests.exceptions.HTTPError
     )
     f = open(log, 'a')
-    for i in range(max_retries):
-        try:
-            post = requests.post(url,headers=headers,data=json.dumps(obj))
-        except retry_on_exceptions:
-            print("Connection failed. Retry in five seconds... ")
-            continue
-        else:
-            if(post.status_code == requests.codes.ok):
-                print("%s updated" % url)
-                f.write("%s updated\n" % url)
+
+    # Sometimes process_object returns an error message as a string; we test for that here
+    if type(obj) is str:
+        print(obj)
+        f.write("%s\n" % obj)
+    else:
+        for i in range(max_retries):
+            try:
+                post = requests.post(url,headers=headers,data=json.dumps(obj))
+            except retry_on_exceptions:
+                print("Connection failed. Retry in five seconds... ")
+                continue
             else:
-                error = post.json()
-                print("Error while processing %s: %s" % (url, error['error']))
-                f.write("Error while processing %s: %s\n" % (url, error['error']))
-            break
+                if(post.status_code == requests.codes.ok):
+                    print("%s updated" % url)
+                    f.write("%s updated\n" % url)
+                else:
+                    error = post.json()
+                    print("Error while processing %s: %s" % (url, error['error']))
+                    f.write("Error while processing %s: %s\n" % (url, error['error']))
+                break
 
     f.close()
 
-# actually do whatever find/replace operation you want to do
+# does whatever find/replace operation you want to do
 def process_object(obj):
     # do whatever you need to do here...
 
@@ -85,20 +91,21 @@ try:
 except OSError:
     pass
 
-# if a file of URIs is provided, work on that file; otherwise work on all subjects
+# if a file of URIs is provided, work on that file; otherwise work on all objects of the provided data model
 if args.file:
-    f = open(args.file, "r")
-    for uri in f:
-        url = "%s%s" % (resourceURL, uri.rstrip())
-        subj = get_object(url).json()
-        subj = process_object(subj)
-        post_object(url, subj, log)
+    with open(args.file, 'r') as f:
+        for uri in f:
+            url = "%s%s" % (resourceURL, uri.rstrip())
+            obj = get_object(url).json()
+            obj = process_object(obj)
+            post_object(url, obj, log)
 else:
+    # make up a way to have the user specify what data model they want to work on instead of having to hard-code it every time
     ids = requests.get(("%s/subjects?all_ids=true" % resourceURL),headers=headers).json()
     for val in ids:
         url = "%s/subjects/%d" % (resourceURL, val)
-        subj = get_object(url).json()
-        subj = process_object(subj)
-        post_object(url, subj, log)
+        obj = get_object(url).json()
+        obj = process_object(obj)
+        post_object(url, obj, log)
 
 print("Script done and results written to %s" % log)
