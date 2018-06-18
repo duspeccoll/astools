@@ -30,6 +30,7 @@ auth = requests.post('{baseURL}/users/{user}/login?password={password}&expiring=
 session = auth['session']
 headers = {'X-ArchivesSpace-Session': session}
 
+
 # get an object from the API
 def get_object(url,max_retries=10,timeout=5):
     retry_on_exceptions = (
@@ -45,6 +46,7 @@ def get_object(url,max_retries=10,timeout=5):
             continue
         else:
             return result
+
 
 # post a revised object to the API
 def post_object(url,obj,log,max_retries=10,timeout=5):
@@ -78,34 +80,36 @@ def post_object(url,obj,log,max_retries=10,timeout=5):
 
     f.close()
 
+
 # does whatever find/replace operation you want to do
 def process_object(obj):
-    # do whatever you need to do here...
-
-    # ...then return the processed object to the script
+    # place holder function for whatever needs to be done to object
+    # import updates.py and overwrite this function
     return obj
 
-log = "%s/logfile.txt" % path
-try:
-    os.remove(log)
-except OSError:
-    pass
 
-# if a file of URIs is provided, work on that file; otherwise work on all objects of the provided data model
-if args.file:
-    with open(args.file, 'r') as f:
-        for uri in f:
-            url = "%s%s" % (resourceURL, uri.rstrip())
+def update():
+    log = "%s/logfile.txt" % path
+    try:
+        os.remove(log)
+    except OSError:
+        pass
+
+    # if a file of URIs is provided, work on that file; otherwise work on all objects of the provided data model
+    if args.file:
+        with open(args.file, 'r') as f:
+            for uri in f:
+                url = "%s%s" % (resourceURL, uri.rstrip())
+                obj = get_object(url).json()
+                obj = process_object(obj)
+                post_object(url, obj, log)
+    else:
+        # make up a way to have the user specify what data model they want to work on instead of having to hard-code it every time
+        ids = requests.get(("%s/subjects?all_ids=true" % resourceURL),headers=headers).json()
+        for val in ids:
+            url = "%s/subjects/%d" % (resourceURL, val)
             obj = get_object(url).json()
             obj = process_object(obj)
             post_object(url, obj, log)
-else:
-    # make up a way to have the user specify what data model they want to work on instead of having to hard-code it every time
-    ids = requests.get(("%s/subjects?all_ids=true" % resourceURL),headers=headers).json()
-    for val in ids:
-        url = "%s/subjects/%d" % (resourceURL, val)
-        obj = get_object(url).json()
-        obj = process_object(obj)
-        post_object(url, obj, log)
 
-print("Script done and results written to %s" % log)
+    print("Script done and results written to %s" % log)
