@@ -8,11 +8,11 @@ import json, configparser, requests, argparse, os, re, csv
 config = configparser.ConfigParser()
 config.read('local_settings.cfg')
 dictionary = {
-  'baseURL': config.get('ArchivesSpace', 'baseURL'),
-  'repository':config.get('ArchivesSpace', 'repository'),
-  'user': config.get('ArchivesSpace', 'user'),
-  'password': config.get('ArchivesSpace', 'password'),
-  'path': config.get('Destinations', 'home')
+    'baseURL': config.get('ArchivesSpace', 'baseURL'),
+    'repository': config.get('ArchivesSpace', 'repository'),
+    'user': config.get('ArchivesSpace', 'user'),
+    'password': config.get('ArchivesSpace', 'password'),
+    'path': config.get('Destinations', 'home')
 }
 
 # let argparse set up arguments for passing a file to it
@@ -32,7 +32,7 @@ headers = {'X-ArchivesSpace-Session': session}
 
 
 # get an object from the API
-def get_object(url,max_retries=10,timeout=5):
+def get_object(url, max_retries=10, timeout=5):
     retry_on_exceptions = (
         requests.exceptions.Timeout,
         requests.exceptions.ConnectionError,
@@ -40,7 +40,7 @@ def get_object(url,max_retries=10,timeout=5):
     )
     for i in range(max_retries):
         try:
-            result = requests.get(url,headers=headers)
+            result = requests.get(url, headers=headers, timeout=timeout)
         except retry_on_exceptions:
             print("Connection failed. Retry in five seconds... ")
             continue
@@ -49,7 +49,7 @@ def get_object(url,max_retries=10,timeout=5):
 
 
 # post a revised object to the API
-def post_object(url,obj,log,max_retries=10,timeout=5):
+def post_object(url, obj, log, max_retries=10, timeout=5):
     retry_on_exceptions = (
         requests.exceptions.Timeout,
         requests.exceptions.ConnectionError,
@@ -64,12 +64,12 @@ def post_object(url,obj,log,max_retries=10,timeout=5):
     else:
         for i in range(max_retries):
             try:
-                post = requests.post(url,headers=headers,data=json.dumps(obj))
+                post = requests.post(url, headers=headers, data=json.dumps(obj), timeout=timeout)
             except retry_on_exceptions:
                 print("Connection failed. Retry in five seconds... ")
                 continue
             else:
-                if(post.status_code == requests.codes.ok):
+                if post.status_code == requests.codes.ok:
                     print("%s updated" % url)
                     f.write("%s updated\n" % url)
                 else:
@@ -83,8 +83,6 @@ def post_object(url,obj,log,max_retries=10,timeout=5):
 
 # does whatever find/replace operation you want to do
 def process_object(obj):
-    # place holder function for whatever needs to be done to object
-    # import updates.py and overwrite this function
     return obj
 
 
@@ -104,8 +102,9 @@ def update():
                 obj = process_object(obj)
                 post_object(url, obj, log)
     else:
-        # make up a way to have the user specify what data model they want to work on instead of having to hard-code it every time
-        ids = requests.get(("%s/subjects?all_ids=true" % resourceURL),headers=headers).json()
+        # make up a way to have the user specify what data model they want to work on instead of having to
+        # hard-code it every time
+        ids = requests.get(("%s/subjects?all_ids=true" % resourceURL), headers=headers).json()
         for val in ids:
             url = "%s/subjects/%d" % (resourceURL, val)
             obj = get_object(url).json()
