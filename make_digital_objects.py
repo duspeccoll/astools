@@ -8,9 +8,6 @@
 # as well as a list of handles/file names (in CSV), and constructs digital
 # objects from the data it finds
 #
-# I haven't spec'd out exactly how this stuff should be formatted but I will;
-# it's usually my last thought on these one-off scripts...
-#
 ###############################################################################
 
 import re, os, errno, json, csv
@@ -51,6 +48,7 @@ def link_object(ao, do):
     item['instances'].append({
         'instance_type': 'digital_object',
         'jsonmodel_type': 'instance',
+        'is_representative': True,
         'digital_object': { 'ref': do }
     })
 
@@ -62,7 +60,23 @@ def link_object(ao, do):
         print("Error: {}".format(message['error']))
 
 uri = get_uri()
+print("Building the tree... ")
 list = build_list(uri)
+
+###############################################################################
+#
+# Whatever your CSV is named, it should have one row per *file*, and contain
+# two columns:
+#
+# * Column 1 contains the component ID for the item to which the file belongs
+# * Column 2 contains the file name
+#
+# A component's digital object may contain more than one file.
+#
+# The script will iterate over the CSV file and append the file metadata to
+# whatever item is specified in column 1.
+#
+###############################################################################
 
 file = input('Enter the name of the file containing your digital object file names: ')
 if os.path.exists(file):
