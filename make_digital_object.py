@@ -5,6 +5,8 @@ from asnake.aspace import ASpace
 
 parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
 parser.add_argument('-p', '--path', help="The directory to process")
+parser.add_argument('--no-kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
+parser.add_argument('--no-caption', help="Do not prompt the user to provide captions", action='store_true')
 args = parser.parse_args()
 
 AS = ASpace()
@@ -56,10 +58,11 @@ def process_files(ref, path):
                         updates = False
 
                         if 'component_id' not in child:
-                            kaltura_id = input("> Kaltura ID (leave blank for none): ")
-                            if kaltura_id:
-                                child['component_id'] = kaltura_id
-                                updates = True
+                            if not args.no_kaltura_id:
+                                kaltura_id = input("> Kaltura ID (leave blank for none): ")
+                                if kaltura_id:
+                                    child['component_id'] = kaltura_id
+                                    updates = True
 
                         if child['file_versions']:
                             version = child['file_versions'][0]
@@ -76,15 +79,16 @@ def process_files(ref, path):
                             child['file_versions'] = [f]
                             updates = True
 
-                        caption = input("> Caption (leave blank for none): ")
-                        if caption:
-                            if 'caption' in child['file_versions'][0]:
-                                if child['file_versions'][0]['caption'] != caption:
+                        if not args.no_caption:
+                            caption = input("> Caption (leave blank for none): ")
+                            if caption:
+                                if 'caption' in child['file_versions'][0]:
+                                    if child['file_versions'][0]['caption'] != caption:
+                                        child['file_versions'][0]['caption'] = caption
+                                        updates = True
+                                else:
                                     child['file_versions'][0]['caption'] = caption
                                     updates = True
-                            else:
-                                child['file_versions'][0]['caption'] = caption
-                                updates = True
 
                         if updates:
                             print("Updating {}... ".format(file))
@@ -93,8 +97,6 @@ def process_files(ref, path):
                             print("No updates to make")
             else:
                 print("Adding file-level metadata to ArchivesSpace... ")
-                kaltura_id = input("> Kaltura ID (leave blank for none): ")
-                caption = input("> Caption (leave blank for none): ")
                 data = {
                     'jsonmodel_type': "digital_record_children",
                     'children': [{
@@ -109,10 +111,14 @@ def process_files(ref, path):
                         'digital_object': {'ref': ref}
                     }]
                 }
-                if kaltura_id:
-                    data['children'][0]['component_id'] = kaltura_id
-                if caption:
-                    data['children'][0]['file_versions'][0]['caption'] = caption
+                if not args.no_kaltura_id:
+                    kaltura_id = input("> Kaltura ID (leave blank for none): ")
+                    if kaltura_id:
+                        data['children'][0]['component_id'] = kaltura_id
+                if not args.no_caption:
+                    caption = input("> Caption (leave blank for none): ")
+                    if caption:
+                        data['children'][0]['file_versions'][0]['caption'] = caption
                 post_json("{}/children".format(ref), data)
     else:
         print("No files found.")
