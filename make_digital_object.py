@@ -230,16 +230,19 @@ def check_uri_txt(path):
 
 # get the digital object's relative path from the user
 def get_path(path=None):
-    while True:
-        path = input('Path to your digital object: ')
-        if path:
-            if not os.path.exists(path):
-                sys.exit("{} does not exist".format(path))
-            if not os.path.isdir(path):
-                sys.exit("{} is not a directory".format(path))
-            return path
-        else:
-            print("Please enter a path")
+    if path:
+        return path
+    else:
+        while True:
+            path = input('Path to your digital object: ')
+            if path:
+                if not os.path.exists(path):
+                    sys.exit("{} does not exist".format(path))
+                if not os.path.isdir(path):
+                    sys.exit("{} is not a directory".format(path))
+                return path
+            else:
+                print("Please enter a path")
 
 
 path = get_path(args.path)
