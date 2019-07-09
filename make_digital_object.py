@@ -245,7 +245,12 @@ def get_path(path=None):
                 print("Please enter a path")
 
 
-path = get_path(args.path)
-uri = check_uri_txt(path)
-ref = check_digital_object(uri)
-process_files(ref, path)
+def main():
+    path = get_path(args.path)
+    uri = check_uri_txt(path)
+    ref = check_digital_object(uri)
+    process_files(ref, path)
+
+
+if __name__ == "__main__":
+    main()
