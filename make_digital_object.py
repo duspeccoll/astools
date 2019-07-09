@@ -42,57 +42,60 @@ def process_files(ref, path):
         for file in files:
             print("\nProcessing {}... ".format(file))
             path_to_file = os.path.join(path, file)
-            f = {
-                'jsonmodel_type': "file_version",
-                'file_uri': file,
-                'file_format_name': magic.from_file(path_to_file, mime=True).split("/")[-1],
-                'file_size_bytes': os.path.getsize(path_to_file),
-                'is_representative': True
-            }
+            file_format_name = magic.from_file(path_to_file, mime=True).split("/")[-1]
+            file_size_bytes = os.path.getsize(path_to_file)
 
             tree_files = [child for child in tree['children'] if child['title'] == file]
             if tree_files:
                 print("Checking for file-level metadata updates... ")
                 for child in tree['children']:
                     if child['title'] == file:
+                        record = get_json(child['record_uri'])
                         updates = False
 
-                        if 'component_id' not in child:
+                        if 'component_id' not in record:
                             if not args.no_kaltura_id:
                                 kaltura_id = input("> Kaltura ID (leave blank for none): ")
                                 if kaltura_id:
-                                    child['component_id'] = kaltura_id
+                                    record['component_id'] = kaltura_id
                                     updates = True
 
-                        if child['file_versions']:
-                            version = child['file_versions'][0]
-                            if 'file_uri' not in version or version['file_uri'] != f['file_uri']:
-                                child['file_versions'][0]['file_uri'] = f['file_uri']
+                        if record['file_versions']:
+                            version = record['file_versions'][0]
+                            if 'file_uri' not in version or version['file_uri'] != file:
+                                record['file_versions'][0]['file_uri'] = file
                                 updates = True
-                            if 'file_format_name' not in version or version['file_format_name'] != f['file_format_name']:
-                                child['file_versions'][0]['file_format_name'] = f['file_format_name']
+                            if 'file_format_name' not in version or version['file_format_name'] != file_format_name:
+                                record['file_versions'][0]['file_format_name'] = file_format_name
                                 updates = True
-                            if 'file_size_bytes' not in version or version['file_size_bytes'] != f['file_size_bytes']:
-                                child['file_versions'][0]['file_size_bytes'] = f['file_size_bytes']
+                            if 'file_size_bytes' not in version or version['file_size_bytes'] != file_size_bytes:
+                                record['file_versions'][0]['file_size_bytes'] = file_size_bytes
                                 updates = True
                         else:
-                            child['file_versions'] = [f]
+                            record['file_versions'].append({
+                                'jsonmodel_type': "file_version",
+                                'file_uri': file,
+                                'file_format_name': file_format_name,
+                                'file_size_bytes': file_size_bytes,
+                                'is_representative': True,
+                            })
                             updates = True
 
                         if not args.no_caption:
                             caption = input("> Caption (leave blank for none): ")
                             if caption:
-                                if 'caption' in child['file_versions'][0]:
-                                    if child['file_versions'][0]['caption'] != caption:
-                                        child['file_versions'][0]['caption'] = caption
+                                if 'caption' in record['file_versions'][0]:
+                                    if record['file_versions'][0]['caption'] != caption:
+                                        record['file_versions'][0]['caption'] = caption
                                         updates = True
                                 else:
-                                    child['file_versions'][0]['caption'] = caption
+                                    record['file_versions'][0]['caption'] = caption
                                     updates = True
 
                         if updates:
                             print("Updating {}... ".format(file))
-                            post_json(child['record_uri'], child)
+                            record['digital_object'] = {'ref': ref}
+                            post_json(child['record_uri'], record)
                         else:
                             print("No updates to make")
             else:
