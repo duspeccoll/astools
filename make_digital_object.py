@@ -5,6 +5,7 @@ from asnake.aspace import ASpace
 
 parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
 parser.add_argument('-p', '--path', help="The directory to process")
+parser.add_argument('-b', '--batch', help="A file containing a list of directories to process in a batch")
 parser.add_argument('--no-kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
 parser.add_argument('--no-caption', help="Do not prompt the user to provide captions", action='store_true')
 args = parser.parse_args()
@@ -246,10 +247,25 @@ def get_path(path=None):
 
 
 def main():
-    path = get_path(args.path)
-    uri = check_uri_txt(path)
-    ref = check_digital_object(uri)
-    process_files(ref, path)
+    if args.path and args.batch:
+        sys.exit("Error: Script must be run in either path or batch mode (you provided both)")
+
+    if args.batch:
+        if os.path.exists(args.batch):
+            with open(args.batch, 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    path = row[0]
+                    uri = check_uri_txt(path)
+                    ref = check_digital_object(uri)
+                    process_files(ref, path)
+        else:
+            print("File not found: {}".format(args.batch))
+    else:
+        path = get_path(args.path)
+        uri = check_uri_txt(path)
+        ref = check_digital_object(uri)
+        process_files(ref, path)
 
 
 if __name__ == "__main__":
