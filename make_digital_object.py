@@ -260,7 +260,7 @@ def main():
     no_caption = args.no_caption
     uri = check_uri_txt(path)
     ref = check_digital_object(uri)
-    process_files(ref, path)
+    process_files(ref, path, no_kaltura_id, no_caption)
 
 
 if __name__ == "__main__":
