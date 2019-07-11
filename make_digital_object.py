@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
-import argparse, csv, json, magic, os, sys
-from asnake.aspace import ASpace
+import argparse
+import json
+import magic
+import os
+import sys
 
+from asnake.aspace import ASpace
 
 AS = ASpace()
 
@@ -28,7 +32,7 @@ def post_json(uri, data):
 
 
 # process the files in the path and add digital object components where necessary for each file
-def process_files(ref, path):
+def process_files(ref, path, no_kaltura_id, no_caption):
     print("Fetching digital object tree... ")
     tree = get_json("{}/tree".format(ref))
 
@@ -50,7 +54,7 @@ def process_files(ref, path):
                         updates = False
 
                         if 'component_id' not in record:
-                            if not args.no_kaltura_id:
+                            if not no_kaltura_id:
                                 kaltura_id = input("> Kaltura ID (leave blank for none): ")
                                 if kaltura_id:
                                     record['component_id'] = kaltura_id
@@ -77,7 +81,7 @@ def process_files(ref, path):
                             })
                             updates = True
 
-                        if not args.no_caption:
+                        if not no_caption:
                             caption = input("> Caption (leave blank for none): ")
                             if caption:
                                 if 'caption' in record['file_versions'][0]:
@@ -110,11 +114,11 @@ def process_files(ref, path):
                         'digital_object': {'ref': ref}
                     }]
                 }
-                if not args.no_kaltura_id:
+                if not no_kaltura_id:
                     kaltura_id = input("> Kaltura ID (leave blank for none): ")
                     if kaltura_id:
                         data['children'][0]['component_id'] = kaltura_id
-                if not args.no_caption:
+                if not no_caption:
                     caption = input("> Caption (leave blank for none): ")
                     if caption:
                         data['children'][0]['file_versions'][0]['caption'] = caption
@@ -218,7 +222,7 @@ def check_uri_txt(path):
     if os.path.exists(uri_txt):
         print("Checking if URI matches item record... ")
         with open(uri_txt, 'r') as f:
-            uri = f.read().replace('\n','')
+            uri = f.read().replace('\n', '')
             item = get_json(uri)
             if item['component_id'] != component_id:
                 uri = write_uri_txt(component_id, uri_txt)
@@ -247,11 +251,13 @@ def get_path(path=None):
 def main():
     parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
     parser.add_argument('-p', '--path', help="The directory to process")
-    parser.add_argument('--no-kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
-    parser.add_argument('--no-caption', help="Do not prompt the user to provide captions", action='store_true')
-    
+    parser.add_argument('--no_kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
+    parser.add_argument('--no_caption', help="Do not prompt the user to provide captions", action='store_true')
+
     args = parser.parse_args()
     path = get_path(args.path)
+    no_kaltura_id = args.no_kaltura_id
+    no_caption = args.no_caption
     uri = check_uri_txt(path)
     ref = check_digital_object(uri)
     process_files(ref, path)
