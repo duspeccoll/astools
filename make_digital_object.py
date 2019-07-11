@@ -3,13 +3,9 @@
 import argparse, csv, json, magic, os, sys
 from asnake.aspace import ASpace
 
-parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
-parser.add_argument('-p', '--path', help="The directory to process")
-parser.add_argument('--no-kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
-parser.add_argument('--no-caption', help="Do not prompt the user to provide captions", action='store_true')
-args = parser.parse_args()
 
 AS = ASpace()
+
 
 def get_json(uri):
     r = AS.client.get(uri)
@@ -158,7 +154,8 @@ def write_digital_object(item):
         sys.exit("Error: {}".format(json.loads(r.text)['error']))
 
 
-# given a URI from uri.txt, download the item record and check that it is cataloged according to the digital object metadata specification
+# given a URI from uri.txt, download the item record and check that it is cataloged according to the digital object
+# metadata specification
 def check_digital_object(uri):
     print("Downloading item... ")
     item = get_json(uri)
@@ -169,7 +166,8 @@ def check_digital_object(uri):
     if instances:
         # script exits if the item has more than one digital object attached to it
         if len(instances) > 1:
-            sys.exit("An item cannot have more than one digital object. Please check ArchivesSpace to confirm your item is cataloged properly.")
+            sys.exit("An item cannot have more than one digital object. Please check ArchivesSpace to confirm your "
+                     "item is cataloged properly.")
         else:
             ref = instances[0]['digital_object']['ref']
             objects = [i for i in instances if i['is_representative']]
@@ -210,7 +208,8 @@ def write_uri_txt(id, path):
         r.raise_for_status()
 
 
-# confirm that uri.txt exists and that its URI matches the object (based on the call number provided in the directory name)
+# confirm that uri.txt exists and that its URI matches the object (based on the call number provided in the directory
+# name)
 def check_uri_txt(path):
     component_id = path.split("/")[-1]
     uri_txt = "{}/uri.txt".format(path)
@@ -246,6 +245,12 @@ def get_path(path=None):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
+    parser.add_argument('-p', '--path', help="The directory to process")
+    parser.add_argument('--no-kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
+    parser.add_argument('--no-caption', help="Do not prompt the user to provide captions", action='store_true')
+    
+    args = parser.parse_args()
     path = get_path(args.path)
     uri = check_uri_txt(path)
     ref = check_digital_object(uri)
