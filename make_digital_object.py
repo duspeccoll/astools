@@ -8,7 +8,8 @@ import sys
 
 from asnake.aspace import ASpace
 
-AS = ASpace()
+
+AS = None
 
 
 def get_json(uri):
@@ -249,6 +250,8 @@ def get_path(path=None):
 
 
 def main():
+    global AS
+    AS = ASpace()
     parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
     parser.add_argument('-p', '--path', help="The directory to process")
     parser.add_argument('--no_kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
