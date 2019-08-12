@@ -190,10 +190,11 @@ def check_digital_object(uri):
 
 # write uri.txt by searching for the component ID specified in the directory name and fetching its URI
 def write_uri_txt(id, path):
+    global AS
     print("Writing uri.txt... ")
-    r = AS.client.get('/repositories/2/search', params={'q': id, 'type[]': "archival_object", 'page': "1"})
-    if r.status_code == 200:
-        results = json.loads(r.text)['results']
+    resp = AS.client.get('/repositories/2/search', params={'q': id, 'type[]': "archival_object", 'page': "1"})
+    if resp.status_code == 200:
+        results = json.loads(resp.text)['results']
         uris = [r for r in results if r['component_id'] == id and 'pui' not in r['types']]
 
         # script exits if there are no results or if more than one archival_object has the provided call number
@@ -210,7 +211,7 @@ def write_uri_txt(id, path):
 
         return uri
     else:
-        r.raise_for_status()
+        resp.raise_for_status()
 
 
 # confirm that uri.txt exists and that its URI matches the object (based on the call number provided in the directory

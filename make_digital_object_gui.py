@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
+import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 
@@ -75,6 +76,7 @@ class AddButton(tk.Button):
             self.file_listbox.insert('', 'end', text=file_path, values=(kaltura_id,))
             uri = check_uri_txt(file_path)
             print(uri)
+            ref = check_digital_object(uri)
 
 
 class RemoveButton(tk.Button):
@@ -94,7 +96,7 @@ class BrowseButton(tk.Button):
         self.file_path_entry = file_path_entry
 
     def _button_command(self):
-        dirname = filedialog.askdirectory(initialdir=r"R:\Archives Processing")
+        dirname = filedialog.askdirectory(initialdir=r"/media/sf_vbox_shared")
         self.file_path_entry.set(dirname)
 
 
@@ -109,6 +111,12 @@ class FileListbox(ttk.Treeview):
         self.heading('kaltura_id', text="Kaltura ID")
 
 
+class ItemListbox(ttk.Treeview):
+    def __init__(self, master):
+        super(ItemListbox, self).__init__(master, columns=("caption",))
+        self.heading('caption', text="Caption")
+
+
 def setup_gui(root):
     main_frame = MainFrame(root)
     main_frame.grid()
@@ -116,8 +124,7 @@ def setup_gui(root):
 
 def main():
     try:
-        global AS
-        AS = ASpace()
+        make_digital_object.AS = ASpace()
     except ASnakeAuthError:
         print("Could not connect to ArchivesSpace.", file=sys.stderr)
     root = tk.Tk()
