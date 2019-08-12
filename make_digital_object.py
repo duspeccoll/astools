@@ -50,6 +50,7 @@ def process_files(ref, path, no_kaltura_id, no_caption):
             if tree_files:
                 print("Checking for file-level metadata updates... ")
                 for child in tree['children']:
+                    # is this if statement redundunt considering the above list comprehension? -Alice
                     if child['title'] == file:
                         record = get_json(child['record_uri'])
                         updates = False

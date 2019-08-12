@@ -6,25 +6,30 @@ from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 
 
+item_dict = dict()
+
+
 class MainFrame(ttk.Frame):
     def __init__(self, master):
         super(MainFrame, self).__init__(master)
-        self.file_listbox = FileListbox(self)
+        self.item_listbox = ItemListbox(self)
+        self.item_listbox.grid(column=1, row=0)
+        self.file_listbox = FileListbox(self, self.item_listbox)
         self.file_listbox.grid(column=0, row=0)
-        file_info_frame = FileInfoFrame(self, self.file_listbox)
-        file_info_frame.grid(column=0, row=1, sticky="W")
-        item_listbox = tk.Listbox(self)
-        item_listbox.grid(column=1, row=0)
+        self.file_info_frame = FileInfoFrame(self, self.file_listbox, self.item_listbox)
+        self.file_info_frame.grid(column=0, row=1, sticky="W")
+        self.item_info_frame = ItemInfoFrame(self, self.file_listbox, self.item_listbox)
+        self.item_info_frame.grid(column=1, row=1)
 
 
 class FileInfoFrame(ttk.Frame):
-    def __init__(self, master, file_listbox):
+    def __init__(self, master, file_listbox, item_listbox):
         super(FileInfoFrame, self).__init__(master)
         self.file_path_entry = FilePathEntry(self)
         self.file_path_entry.grid(column=0, row=0, sticky="W")
         self.kaltura_id_entry = KalturaIDEntry(self)
         self.kaltura_id_entry.grid(column=0, row=1, sticky="W")
-        self.add_button = AddButton(self, self.file_path_entry, self.kaltura_id_entry, file_listbox)
+        self.add_button = AddButton(self, self.file_path_entry, self.kaltura_id_entry, file_listbox, item_listbox)
         self.add_button.grid(column=1, row=0, sticky="W")
         self.remove_button = RemoveButton(self, file_listbox)
         self.remove_button.grid(column=1, row=1, sticky="W")
@@ -32,6 +37,17 @@ class FileInfoFrame(ttk.Frame):
         self.browse_button.grid(column=2, row=0)
         self.process_button = ProcessButton(self)
         self.process_button.grid(column=2, row=1, sticky="W")
+
+
+class ItemInfoFrame(ttk.Frame):
+    def __init__(self, master, file_listbox, item_listbox):
+        super(ItemInfoFrame, self).__init__(master)
+        self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
+        self.caption_entry = CaptionEntry(self)
+        self.caption_entry.grid(column=0, row=0, sticky='W')
+        self.set_caption_button = SetCaptionButton(self, self.caption_entry, self.file_listbox, self.item_listbox)
+        self.set_caption_button.grid(column=1, row=0, sticky='W')
 
 
 class FilePathEntry(ttk.Frame):
@@ -62,22 +78,37 @@ class KalturaIDEntry(ttk.Frame):
         return self.entry.get()
 
 
+class CaptionEntry(ttk.Frame):
+    def __init__(self, master):
+        super(CaptionEntry, self).__init__(master)
+        self.label = tk.Label(self, text="Caption")
+        self.label.grid(column=0, row=0, sticky='W')
+        self.entry = tk.Entry(self)
+        self.entry.grid(column=0, row=1, sticky='W')
+
+    def get(self):
+        return self.entry.get()
+
+
 class AddButton(tk.Button):
-    def __init__(self, master, file_path_entry, kaltura_id_entry, file_listbox):
+    def __init__(self, master, file_path_entry, kaltura_id_entry, file_listbox, item_listbox):
         super(AddButton, self).__init__(master, text="Add", command=self._button_command)
         self.file_path_entry = file_path_entry
         self.kaltura_id_entry = kaltura_id_entry
         self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
 
     def _button_command(self):
         file_path = self.file_path_entry.get()
         kaltura_id = self.kaltura_id_entry.get()
         if file_path != "":
-            self.file_listbox.insert('', 'end', text=file_path, values=(kaltura_id,))
+            tree_id = self.file_listbox.insert('', 'end', text=file_path, values=(kaltura_id,))
             uri = check_uri_txt(file_path)
             print(uri)
             ref = check_digital_object(uri)
-
+            find_items(ref, tree_id)
+            self.file_path_entry.entry.delete(0, 'end')
+            self.file_listbox.selection('set', (tree_id,))
 
 class RemoveButton(tk.Button):
     def __init__(self, master, file_listbox):
@@ -96,8 +127,25 @@ class BrowseButton(tk.Button):
         self.file_path_entry = file_path_entry
 
     def _button_command(self):
-        dirname = filedialog.askdirectory(initialdir=r"/media/sf_vbox_shared")
+        dirname = filedialog.askdirectory(initialdir=r"C:\Users\alice.tarrant\vbox_shared\U032")
         self.file_path_entry.set(dirname)
+
+
+class SetCaptionButton(tk.Button):
+    def __init__(self, master, caption_entry, file_listbox, item_listbox):
+        super(SetCaptionButton, self).__init__(master, text='Set', command=self._button_command)
+        self.caption_entry = caption_entry
+        self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
+
+    def _button_command(self):
+        file_selection = self.file_listbox.selection()
+        file_index = file_selection[0]
+        item_selection = self.item_listbox.selection()
+        item_index = int(item_selection[0][1:])-1
+        item_list = item_dict[file_index]
+        item_list[item_index]['caption'] = self.caption_entry.get()
+        display_items(self.file_listbox, self.item_listbox)
 
 
 class ProcessButton(tk.Button):
@@ -106,15 +154,37 @@ class ProcessButton(tk.Button):
 
 
 class FileListbox(ttk.Treeview):
-    def __init__(self, master):
+    def __init__(self, master, item_listbox):
         super(FileListbox, self).__init__(master, columns=("kaltura_id",))
+        self.item_listbox = item_listbox
+        self.heading('#0', text='Component ID')
         self.heading('kaltura_id', text="Kaltura ID")
+        self.bind('<<TreeviewSelect>>', lambda e: display_items(self, self.item_listbox))
 
 
 class ItemListbox(ttk.Treeview):
     def __init__(self, master):
         super(ItemListbox, self).__init__(master, columns=("caption",))
+        self.heading('#0', text="ID")
         self.heading('caption', text="Caption")
+
+
+def find_items(ref, tree_id):
+    print("Fetching digital object tree... ")
+    tree = get_json("{}/tree".format(ref))
+    if 'tree_id' not in item_dict:
+        item_dict[tree_id] = list()
+    for child in tree['children']:
+        item_dict[tree_id].append({'child': child['title'], 'caption': ''})
+    item_dict[tree_id].append({'child': 'test' + tree_id, 'caption': ''})
+
+
+def display_items(file_listbox, item_listbox):
+    item_listbox.delete(*item_listbox.get_children())
+    selection_id = file_listbox.selection()
+    if len(selection_id) > 0:
+        for entry in item_dict[selection_id[0]]:
+            item_listbox.insert('', 'end', text=entry['child'], values=(entry['caption'],))
 
 
 def setup_gui(root):
