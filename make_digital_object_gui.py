@@ -5,7 +5,6 @@ import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 
-
 item_dict = dict()
 
 
@@ -27,9 +26,7 @@ class FileInfoFrame(ttk.Frame):
         super(FileInfoFrame, self).__init__(master)
         self.file_path_entry = FilePathEntry(self)
         self.file_path_entry.grid(column=0, row=0, sticky="W")
-        self.kaltura_id_entry = KalturaIDEntry(self)
-        self.kaltura_id_entry.grid(column=0, row=1, sticky="W")
-        self.add_button = AddButton(self, self.file_path_entry, self.kaltura_id_entry, file_listbox, item_listbox)
+        self.add_button = AddButton(self, self.file_path_entry, file_listbox, item_listbox)
         self.add_button.grid(column=1, row=0, sticky="W")
         self.remove_button = RemoveButton(self, file_listbox)
         self.remove_button.grid(column=1, row=1, sticky="W")
@@ -46,7 +43,10 @@ class ItemInfoFrame(ttk.Frame):
         self.item_listbox = item_listbox
         self.caption_entry = CaptionEntry(self)
         self.caption_entry.grid(column=0, row=0, sticky='W')
-        self.set_caption_button = SetCaptionButton(self, self.caption_entry, self.file_listbox, self.item_listbox)
+        self.kaltura_entry = KalturaIDEntry(self)
+        self.kaltura_entry.grid(column=0, row=1, sticky='W')
+        self.set_caption_button = SetCaptionButton(self, self.caption_entry, self.kaltura_entry, self.file_listbox,
+                                                   self.item_listbox)
         self.set_caption_button.grid(column=1, row=0, sticky='W')
 
 
@@ -91,24 +91,23 @@ class CaptionEntry(ttk.Frame):
 
 
 class AddButton(tk.Button):
-    def __init__(self, master, file_path_entry, kaltura_id_entry, file_listbox, item_listbox):
+    def __init__(self, master, file_path_entry, file_listbox, item_listbox):
         super(AddButton, self).__init__(master, text="Add", command=self._button_command)
         self.file_path_entry = file_path_entry
-        self.kaltura_id_entry = kaltura_id_entry
         self.file_listbox = file_listbox
         self.item_listbox = item_listbox
 
     def _button_command(self):
         file_path = self.file_path_entry.get()
-        kaltura_id = self.kaltura_id_entry.get()
         if file_path != "":
-            tree_id = self.file_listbox.insert('', 'end', text=file_path, values=(kaltura_id,))
+            tree_id = self.file_listbox.insert('', 'end', text=file_path)
             uri = check_uri_txt(file_path)
             print(uri)
             ref = check_digital_object(uri)
             find_items(ref, tree_id)
             self.file_path_entry.entry.delete(0, 'end')
-            self.file_listbox.selection('set', (tree_id,))
+            self.file_listbox.selection_set((tree_id,))
+
 
 class RemoveButton(tk.Button):
     def __init__(self, master, file_listbox):
@@ -119,8 +118,8 @@ class RemoveButton(tk.Button):
         index = self.file_listbox.selection()
         if len(index) > 0:
             self.file_listbox.delete(index)
-            
-            
+
+
 class BrowseButton(tk.Button):
     def __init__(self, master, file_path_entry):
         super(BrowseButton, self).__init__(master, text="Browse", command=self._button_command)
@@ -132,19 +131,21 @@ class BrowseButton(tk.Button):
 
 
 class SetCaptionButton(tk.Button):
-    def __init__(self, master, caption_entry, file_listbox, item_listbox):
+    def __init__(self, master, caption_entry, kaltura_entry, file_listbox, item_listbox):
         super(SetCaptionButton, self).__init__(master, text='Set', command=self._button_command)
         self.caption_entry = caption_entry
         self.file_listbox = file_listbox
         self.item_listbox = item_listbox
+        self.kaltura_entry = kaltura_entry
 
     def _button_command(self):
         file_selection = self.file_listbox.selection()
         file_index = file_selection[0]
         item_selection = self.item_listbox.selection()
-        item_index = int(item_selection[0][1:])-1
+        item_index = int(item_selection[0][1:]) - 1
         item_list = item_dict[file_index]
         item_list[item_index]['caption'] = self.caption_entry.get()
+        item_list[item_index]['kaltura'] = self.kaltura_entry.get()
         display_items(self.file_listbox, self.item_listbox)
 
 
@@ -155,18 +156,18 @@ class ProcessButton(tk.Button):
 
 class FileListbox(ttk.Treeview):
     def __init__(self, master, item_listbox):
-        super(FileListbox, self).__init__(master, columns=("kaltura_id",))
+        super(FileListbox, self).__init__(master)
         self.item_listbox = item_listbox
-        self.heading('#0', text='Component ID')
-        self.heading('kaltura_id', text="Kaltura ID")
+        self.heading('#0', text='Path')
         self.bind('<<TreeviewSelect>>', lambda e: display_items(self, self.item_listbox))
 
 
 class ItemListbox(ttk.Treeview):
     def __init__(self, master):
-        super(ItemListbox, self).__init__(master, columns=("caption",))
-        self.heading('#0', text="ID")
+        super(ItemListbox, self).__init__(master, columns=("caption", 'kaltura'))
+        self.heading('#0', text="Component ID")
         self.heading('caption', text="Caption")
+        self.heading('kaltura', text='Kaltura ID')
 
 
 def find_items(ref, tree_id):
@@ -175,8 +176,8 @@ def find_items(ref, tree_id):
     if 'tree_id' not in item_dict:
         item_dict[tree_id] = list()
     for child in tree['children']:
-        item_dict[tree_id].append({'child': child['title'], 'caption': ''})
-    item_dict[tree_id].append({'child': 'test' + tree_id, 'caption': ''})
+        item_dict[tree_id].append({'child': child['title'], 'caption': '', 'kaltura': ''})
+    item_dict[tree_id].append({'child': 'test', 'caption': '', 'kaltura': ''})
 
 
 def display_items(file_listbox, item_listbox):
@@ -184,7 +185,8 @@ def display_items(file_listbox, item_listbox):
     selection_id = file_listbox.selection()
     if len(selection_id) > 0:
         for entry in item_dict[selection_id[0]]:
-            item_listbox.insert('', 'end', text=entry['child'], values=(entry['caption'],))
+            item_listbox.insert('', 'end', text=entry['child'], values=(entry['caption'], entry['kaltura']))
+    item_listbox.selection_set(('I001',))
 
 
 def setup_gui(root):
