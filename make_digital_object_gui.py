@@ -6,38 +6,48 @@ from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 
 item_dict = dict()
+pad_width = 10
 
 
 class MainFrame(ttk.Frame):
     def __init__(self, master):
         super(MainFrame, self).__init__(master)
         self.item_listbox = ItemListbox(self)
-        self.item_listbox.grid(column=2, row=0, rowspan=3)
+        self.item_listbox.grid(column=3, row=0, rowspan=3)
+        self.item_listbox_scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.item_listbox.yview)
+        self.item_listbox_scrollbar.grid(column=4, row=0, rowspan=3, sticky='NS')
+        self.item_listbox.configure(yscrollcommand=self.item_listbox_scrollbar.set)
         self.file_listbox = FileListbox(self, self.item_listbox)
         self.file_listbox.grid(column=0, row=0, rowspan=3)
+        self.file_listbox_scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.file_listbox.yview)
+        self.file_listbox_scrollbar.grid(column=1, row=0, rowspan=3, sticky='NS')
+        self.file_listbox.configure(yscrollcommand=self.file_listbox_scrollbar.set)
         self.file_info_frame = FileInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.file_info_frame.grid(column=0, row=3, sticky="W")
+        self.file_info_frame.grid(column=0, row=3, sticky="W", padx=pad_width)
         self.item_info_frame = ItemInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.item_info_frame.grid(column=2, row=3)
+        self.item_info_frame.grid(column=3, row=3)
         self.process_buttons_frame = ttk.Frame(self)
-        self.process_buttons_frame.grid(column=1, row=1)
+        self.process_buttons_frame.grid(column=2, row=1, padx=pad_width)
         self.process_button = ProcessButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
-        self.process_button.grid(column=0, row=0, sticky='W')
+        self.process_button.grid(column=0, row=0, sticky='WE')
         self.process_all_button = ProcessAllButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
-        self.process_all_button.grid(column=0, row=1, sticky='W')
+        self.process_all_button.grid(column=0, row=1, sticky='WE')
 
 
 class FileInfoFrame(ttk.Frame):
     def __init__(self, master, file_listbox, item_listbox):
         super(FileInfoFrame, self).__init__(master)
         self.file_path_entry = FilePathEntry(self)
-        self.file_path_entry.grid(column=0, row=0, sticky="W")
-        self.add_button = AddButton(self, self.file_path_entry, file_listbox, item_listbox)
-        self.add_button.grid(column=1, row=0, sticky="W")
-        self.remove_button = RemoveButton(self, file_listbox, item_listbox)
-        self.remove_button.grid(column=1, row=1, sticky="W")
-        self.browse_button = BrowseButton(self, self.file_path_entry)
-        self.browse_button.grid(column=2, row=0)
+        self.file_path_entry.grid(column=0, row=0, columnspan=3)
+        self.add_remove_buttons_frame = ttk.Frame(self)
+        self.add_remove_buttons_frame.grid(column=0, row=1, sticky='W')
+        self.add_button = AddButton(self.add_remove_buttons_frame, self.file_path_entry, file_listbox, item_listbox)
+        self.add_button.grid(column=0, row=0, sticky='W')
+        self.remove_button = RemoveButton(self.add_remove_buttons_frame, file_listbox, item_listbox)
+        self.remove_button.grid(column=1, row=0, sticky='W')
+        self.add_remove_buttons_frame.columnconfigure('all', pad=2)
+        self.browse_button = BrowseButton(self.file_path_entry, self.file_path_entry)
+        self.browse_button.grid(column=1, row=1, padx=pad_width)
 
 
 class ItemInfoFrame(ttk.Frame):
@@ -49,9 +59,11 @@ class ItemInfoFrame(ttk.Frame):
         self.caption_entry.grid(column=0, row=0, sticky='W')
         self.kaltura_entry = KalturaIDEntry(self)
         self.kaltura_entry.grid(column=0, row=1, sticky='W')
-        self.set_caption_button = SetCaptionButton(self, self.caption_entry, self.kaltura_entry, self.file_listbox,
-                                                   self.item_listbox)
-        self.set_caption_button.grid(column=1, row=0, rowspan=2, sticky='W')
+        self.set_caption_button = SetCaptionButton(self.caption_entry, self.caption_entry, self.kaltura_entry,
+                                                   self.file_listbox, self.item_listbox)
+        self.set_caption_button.grid(column=1, row=1, sticky='S', padx=pad_width)
+        self.columnconfigure('all', pad=pad_width)
+        self.rowconfigure('all', pad=pad_width)
 
 
 class FilePathEntry(ttk.Frame):
@@ -59,7 +71,7 @@ class FilePathEntry(ttk.Frame):
         super(FilePathEntry, self).__init__(master)
         self.label = tk.Label(self, text="File Path")
         self.label.grid(column=0, row=0, sticky="W")
-        self.entry = tk.Entry(self)
+        self.entry = tk.Entry(self, width=30)
         self.entry.grid(column=0, row=1, sticky="W")
 
     def get(self):
@@ -179,9 +191,10 @@ class ProcessAllButton(tk.Button):
 
 class FileListbox(ttk.Treeview):
     def __init__(self, master, item_listbox):
-        super(FileListbox, self).__init__(master)
+        super(FileListbox, self).__init__(master, selectmode='browse')
         self.item_listbox = item_listbox
         self.heading('#0', text='Path')
+        self.column('#0', width=300)
         self.bind('<<TreeviewSelect>>', lambda e: display_items(self, self.item_listbox))
 
     def delete_selection(self):
@@ -194,10 +207,13 @@ class FileListbox(ttk.Treeview):
 
 class ItemListbox(ttk.Treeview):
     def __init__(self, master):
-        super(ItemListbox, self).__init__(master, columns=("caption", 'kaltura'))
-        self.heading('#0', text="Digital Object Component ID")
+        super(ItemListbox, self).__init__(master, columns=("kaltura", "caption"), selectmode='browse')
+        self.heading('#0', text="Digital Object ID")
         self.heading('caption', text="Caption")
         self.heading('kaltura', text='Kaltura ID')
+        self.column('#0', width=125)
+        self.column('caption', width=200)
+        self.column('kaltura', width=75)
 
 
 def process_items(file_listbox, file_selection):
@@ -238,9 +254,9 @@ def find_items(ref, path, tree_id):
             path_to_file = os.path.join(path, file)
             try:
                 file_format_name = magic.from_file(path_to_file, mime=True).split("/")[-1]
-            except magic.MagicException as error:
+            except magic.MagicException:
                 file_format_name = ''
-                print(error.message)
+                print('MIME problem, setting file_format_name to blank', file=sys.stderr)
 
             file_size_bytes = os.path.getsize(path_to_file)
 
@@ -301,7 +317,7 @@ def display_items(file_listbox, item_listbox):
     if len(selection_id) > 0:
         for entry in item_dict[selection_id[0]]:
             item_listbox.insert('', 'end', text=entry['child'], iid='I' + str(id_counter),
-                                values=(entry['caption'], entry['kaltura']))
+                                values=(entry['kaltura'], entry['caption']))
             id_counter += 1
         if len(item_dict[selection_id[0]]) > 0:
             item_listbox.selection_set(('I1',))
@@ -312,6 +328,12 @@ def setup_gui(root):
     main_frame.grid()
 
 
+def test_scrollbars(file_listbox):
+    for i in range(30):
+        file_name = 'file' + str(i)
+        file_listbox.insert('', 'end', text=file_name)
+
+
 def main():
     try:
         make_digital_object.AS = ASpace()
@@ -319,6 +341,7 @@ def main():
         print("Could not connect to ArchivesSpace.", file=sys.stderr)
     root = tk.Tk()
     root.title("Make Digital Object")
+    root.configure(padx=pad_width, pady=pad_width)
     setup_gui(root)
     root.mainloop()
 
