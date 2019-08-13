@@ -12,13 +12,19 @@ class MainFrame(ttk.Frame):
     def __init__(self, master):
         super(MainFrame, self).__init__(master)
         self.item_listbox = ItemListbox(self)
-        self.item_listbox.grid(column=1, row=0)
+        self.item_listbox.grid(column=2, row=0, rowspan=3)
         self.file_listbox = FileListbox(self, self.item_listbox)
-        self.file_listbox.grid(column=0, row=0)
+        self.file_listbox.grid(column=0, row=0, rowspan=3)
         self.file_info_frame = FileInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.file_info_frame.grid(column=0, row=1, sticky="W")
+        self.file_info_frame.grid(column=0, row=3, sticky="W")
         self.item_info_frame = ItemInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.item_info_frame.grid(column=1, row=1)
+        self.item_info_frame.grid(column=2, row=3)
+        self.process_buttons_frame = ttk.Frame(self)
+        self.process_buttons_frame.grid(column=1, row=1)
+        self.process_button = ProcessButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
+        self.process_button.grid(column=0, row=0, sticky='W')
+        self.process_all_button = ProcessAllButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
+        self.process_all_button.grid(column=0, row=1, sticky='W')
 
 
 class FileInfoFrame(ttk.Frame):
@@ -32,8 +38,6 @@ class FileInfoFrame(ttk.Frame):
         self.remove_button.grid(column=1, row=1, sticky="W")
         self.browse_button = BrowseButton(self, self.file_path_entry)
         self.browse_button.grid(column=2, row=0)
-        self.process_button = ProcessButton(self, file_listbox, item_listbox)
-        self.process_button.grid(column=2, row=1, sticky="W")
 
 
 class ItemInfoFrame(ttk.Frame):
@@ -47,7 +51,7 @@ class ItemInfoFrame(ttk.Frame):
         self.kaltura_entry.grid(column=0, row=1, sticky='W')
         self.set_caption_button = SetCaptionButton(self, self.caption_entry, self.kaltura_entry, self.file_listbox,
                                                    self.item_listbox)
-        self.set_caption_button.grid(column=1, row=0, sticky='W')
+        self.set_caption_button.grid(column=1, row=0, rowspan=2, sticky='W')
 
 
 class FilePathEntry(ttk.Frame):
@@ -158,25 +162,19 @@ class ProcessButton(tk.Button):
 
     def _button_command(self):
         file_selection = self.file_listbox.selection()[0]
-        item_list = item_dict[file_selection]
-        for item in item_list:
-            if item['type'] == 'new':
-                data = item['data']
-                if item['caption'] != '':
-                    data['children'][0]['file_versions'][0]['caption'] = item['caption']
-                if item['kaltura'] != '':
-                    data['children'][0]['component_id'] = item['kaltura']
-                post_json("{}/children".format(item['ref']), data)
-            else:
-                record = item['data']
-                if item['caption'] != '':
-                    record['file_versions'][0]['caption'] = item['caption']
-                if item['kaltura'] != '':
-                    record['component_id'] = item['kaltura']
-                record['digital_object'] = {'ref': item['ref']}
-                post_json(item['record_uri'], record)
+        process_items(self.file_listbox, file_selection)
 
-        self.file_listbox.delete_selection()
+
+class ProcessAllButton(tk.Button):
+    def __init__(self, master, file_listbox, item_listbox):
+        super(ProcessAllButton, self).__init__(master, text='Process All', command=self._button_command)
+        self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
+
+    def _button_command(self):
+        files = self.file_listbox.get_children()
+        for f in files:
+            process_items(self.file_listbox, f)
 
 
 class FileListbox(ttk.Treeview):
@@ -200,6 +198,28 @@ class ItemListbox(ttk.Treeview):
         self.heading('#0', text="Digital Object Component ID")
         self.heading('caption', text="Caption")
         self.heading('kaltura', text='Kaltura ID')
+
+
+def process_items(file_listbox, file_selection):
+    item_list = item_dict[file_selection]
+    for item in item_list:
+        if item['type'] == 'new':
+            data = item['data']
+            if item['caption'] != '':
+                data['children'][0]['file_versions'][0]['caption'] = item['caption']
+            if item['kaltura'] != '':
+                data['children'][0]['component_id'] = item['kaltura']
+            post_json("{}/children".format(item['ref']), data)
+        else:
+            record = item['data']
+            if item['caption'] != '':
+                record['file_versions'][0]['caption'] = item['caption']
+            if item['kaltura'] != '':
+                record['component_id'] = item['kaltura']
+            record['digital_object'] = {'ref': item['ref']}
+            post_json(item['record_uri'], record)
+
+    file_listbox.delete_selection()
 
 
 def find_items(ref, path, tree_id):
