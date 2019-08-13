@@ -85,7 +85,7 @@ class FilePathEntry(ttk.Frame):
 class KalturaIDEntry(ttk.Frame):
     def __init__(self, master):
         super(KalturaIDEntry, self).__init__(master)
-        self.label = tk.Label(self, text="Kaltura ID (Optional)")
+        self.label = tk.Label(self, text="Kaltura ID")
         self.label.grid(column=0, row=0, sticky='W')
         self.entry = tk.Entry(self)
         self.entry.grid(column=0, row=1, sticky='W')
