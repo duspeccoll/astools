@@ -46,6 +46,16 @@ def process_files(ref, path, no_kaltura_id, no_caption):
             file_format_name = magic.from_file(path_to_file, mime=True).split("/")[-1]
             file_size_bytes = os.path.getsize(path_to_file)
 
+            # translate libmagic's file format enumeration labels to archivesspace
+            if file_format_name == "x-wav":
+                file_format_name = "wav"
+            elif file_format_name == "quicktime":
+                file_format_name = "mov"
+            elif file_format_name == "mpeg":
+                file_format_name = "mp3"
+            elif file_format_name == "vnd.adobe.photoshop":
+                file_format_name = "tiff"
+
             tree_files = [child for child in tree['children'] if child['title'] == file]
             if tree_files:
                 print("Checking for file-level metadata updates... ")
