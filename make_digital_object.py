@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
-import argparse, csv, json, magic, os, sys
+import argparse
+import json
+import magic
+import os
+import sys
+
 from asnake.aspace import ASpace
 
-parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
-parser.add_argument('-p', '--path', help="The directory to process")
-parser.add_argument('-b', '--batch', help="A file containing a list of directories to process in a batch")
-parser.add_argument('--no-kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
-parser.add_argument('--no-caption', help="Do not prompt the user to provide captions", action='store_true')
-args = parser.parse_args()
 
-AS = ASpace()
+AS = None
+
 
 def get_json(uri):
     r = AS.client.get(uri)
@@ -33,7 +33,7 @@ def post_json(uri, data):
 
 
 # process the files in the path and add digital object components where necessary for each file
-def process_files(ref, path):
+def process_files(ref, path, no_kaltura_id, no_caption):
     print("Fetching digital object tree... ")
     tree = get_json("{}/tree".format(ref))
 
@@ -50,12 +50,13 @@ def process_files(ref, path):
             if tree_files:
                 print("Checking for file-level metadata updates... ")
                 for child in tree['children']:
+                    # is this if statement redundunt considering the above list comprehension? -Alice
                     if child['title'] == file:
                         record = get_json(child['record_uri'])
                         updates = False
 
                         if 'component_id' not in record:
-                            if not args.no_kaltura_id:
+                            if not no_kaltura_id:
                                 kaltura_id = input("> Kaltura ID (leave blank for none): ")
                                 if kaltura_id:
                                     record['component_id'] = kaltura_id
@@ -82,7 +83,7 @@ def process_files(ref, path):
                             })
                             updates = True
 
-                        if not args.no_caption:
+                        if not no_caption:
                             caption = input("> Caption (leave blank for none): ")
                             if caption:
                                 if 'caption' in record['file_versions'][0]:
@@ -115,11 +116,11 @@ def process_files(ref, path):
                         'digital_object': {'ref': ref}
                     }]
                 }
-                if not args.no_kaltura_id:
+                if not no_kaltura_id:
                     kaltura_id = input("> Kaltura ID (leave blank for none): ")
                     if kaltura_id:
                         data['children'][0]['component_id'] = kaltura_id
-                if not args.no_caption:
+                if not no_caption:
                     caption = input("> Caption (leave blank for none): ")
                     if caption:
                         data['children'][0]['file_versions'][0]['caption'] = caption
@@ -159,7 +160,8 @@ def write_digital_object(item):
         sys.exit("Error: {}".format(json.loads(r.text)['error']))
 
 
-# given a URI from uri.txt, download the item record and check that it is cataloged according to the digital object metadata specification
+# given a URI from uri.txt, download the item record and check that it is cataloged according to the digital object
+# metadata specification
 def check_digital_object(uri):
     print("Downloading item... ")
     item = get_json(uri)
@@ -170,7 +172,8 @@ def check_digital_object(uri):
     if instances:
         # script exits if the item has more than one digital object attached to it
         if len(instances) > 1:
-            sys.exit("An item cannot have more than one digital object. Please check ArchivesSpace to confirm your item is cataloged properly.")
+            sys.exit("An item cannot have more than one digital object. Please check ArchivesSpace to confirm your "
+                     "item is cataloged properly.")
         else:
             ref = instances[0]['digital_object']['ref']
             objects = [i for i in instances if i['is_representative']]
@@ -188,10 +191,11 @@ def check_digital_object(uri):
 
 # write uri.txt by searching for the component ID specified in the directory name and fetching its URI
 def write_uri_txt(id, path):
+    global AS
     print("Writing uri.txt... ")
-    r = AS.client.get('/repositories/2/search', params={'q': id, 'type[]': "archival_object", 'page': "1"})
-    if r.status_code == 200:
-        results = json.loads(r.text)['results']
+    resp = AS.client.get('/repositories/2/search', params={'q': id, 'type[]': "archival_object", 'page': "1"})
+    if resp.status_code == 200:
+        results = json.loads(resp.text)['results']
         uris = [r for r in results if r['component_id'] == id and 'pui' not in r['types']]
 
         # script exits if there are no results or if more than one archival_object has the provided call number
@@ -208,10 +212,11 @@ def write_uri_txt(id, path):
 
         return uri
     else:
-        r.raise_for_status()
+        resp.raise_for_status()
 
 
-# confirm that uri.txt exists and that its URI matches the object (based on the call number provided in the directory name)
+# confirm that uri.txt exists and that its URI matches the object (based on the call number provided in the directory
+# name)
 def check_uri_txt(path):
     component_id = path.split("/")[-1]
     uri_txt = "{}/uri.txt".format(path)
@@ -220,7 +225,7 @@ def check_uri_txt(path):
     if os.path.exists(uri_txt):
         print("Checking if URI matches item record... ")
         with open(uri_txt, 'r') as f:
-            uri = f.read().replace('\n','')
+            uri = f.read().replace('\n', '')
             item = get_json(uri)
             if item['component_id'] != component_id:
                 uri = write_uri_txt(component_id, uri_txt)
@@ -247,25 +252,20 @@ def get_path(path=None):
 
 
 def main():
-    if args.path and args.batch:
-        sys.exit("Error: Script must be run in either path or batch mode (you provided both)")
+    global AS
+    AS = ASpace()
+    parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
+    parser.add_argument('-p', '--path', help="The directory to process")
+    parser.add_argument('--no_kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
+    parser.add_argument('--no_caption', help="Do not prompt the user to provide captions", action='store_true')
 
-    if args.batch:
-        if os.path.exists(args.batch):
-            with open(args.batch, 'r') as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    path = row[0]
-                    uri = check_uri_txt(path)
-                    ref = check_digital_object(uri)
-                    process_files(ref, path)
-        else:
-            print("File not found: {}".format(args.batch))
-    else:
-        path = get_path(args.path)
-        uri = check_uri_txt(path)
-        ref = check_digital_object(uri)
-        process_files(ref, path)
+    args = parser.parse_args()
+    path = get_path(args.path)
+    no_kaltura_id = args.no_kaltura_id
+    no_caption = args.no_caption
+    uri = check_uri_txt(path)
+    ref = check_digital_object(uri)
+    process_files(ref, path, no_kaltura_id, no_caption)
 
 
 if __name__ == "__main__":
