@@ -7,6 +7,10 @@ from asnake.client.web_client import ASnakeAuthError
 
 item_dict = dict()
 pad_width = 10
+mag = magic.Magic(mime=True, magic_file=r"magic.mgc")
+ignored_file_names = ('Thumbs.db',
+                      '.DS_Store',
+                      'uri.txt')
 
 
 class MainFrame(ttk.Frame):
@@ -246,17 +250,16 @@ def find_items(ref, path, tree_id):
     tree = get_json("{}/tree".format(ref))
 
     print("Checking files... ")
-    files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f != "uri.txt"
-             and f != 'Thumbs.db']
+    files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f not in ignored_file_names]
     if files:
         for file in files:
-            print("\nProcessing {}... ".format(file))
             path_to_file = os.path.join(path, file)
             try:
-                file_format_name = magic.from_file(path_to_file, mime=True).split("/")[-1]
+                file_format_name = mag.from_file(path_to_file).split("/")[-1]
             except magic.MagicException:
-                file_format_name = ''
                 print('MIME problem, setting file_format_name to blank', file=sys.stderr)
+                continue
+            print("\nProcessing {}... ".format(file))
 
             file_size_bytes = os.path.getsize(path_to_file)
 
