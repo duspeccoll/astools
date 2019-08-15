@@ -18,8 +18,13 @@ import sys
 
 from asnake.aspace import ASpace
 
-
 AS = None
+
+
+class DigitalObjectException(Exception):
+    def __init__(self, message):
+        super(DigitalObjectException, self).__init__()
+        self.message = message
 
 
 def get_json(uri):
@@ -42,6 +47,19 @@ def post_json(uri, data):
         print("Error: {}".format(message['error']))
 
 
+def magic_to_as(file_format_name):
+    # translate libmagic's file format enumeration labels to archivesspace
+    if file_format_name == "x-wav":
+        file_format_name = "wav"
+    elif file_format_name == "quicktime":
+        file_format_name = "mov"
+    elif file_format_name == "mpeg":
+        file_format_name = "mp3"
+    elif file_format_name == "vnd.adobe.photoshop":
+        file_format_name = "tiff"
+    return file_format_name
+
+
 # process the files in the path and add digital object components where necessary for each file
 def process_files(ref, path, no_kaltura_id, no_caption):
     print("Fetching digital object tree... ")
@@ -56,15 +74,7 @@ def process_files(ref, path, no_kaltura_id, no_caption):
             file_format_name = magic.from_file(path_to_file, mime=True).split("/")[-1]
             file_size_bytes = os.path.getsize(path_to_file)
 
-            # translate libmagic's file format enumeration labels to archivesspace
-            if file_format_name == "x-wav":
-                file_format_name = "wav"
-            elif file_format_name == "quicktime":
-                file_format_name = "mov"
-            elif file_format_name == "mpeg":
-                file_format_name = "mp3"
-            elif file_format_name == "vnd.adobe.photoshop":
-                file_format_name = "tiff"
+            file_format_name = magic_to_as(file_format_name)
 
             tree_files = [child for child in tree['children'] if child['title'] == file]
             if tree_files:
@@ -157,7 +167,7 @@ def write_digital_object(item):
     links = [d for d in item['external_documents'] if d['title'] == "Special Collections @ DU"]
     if links:
         if len(links) > 1:
-            sys.exit("There shouldn't be more than one repository link on an item record.")
+            raise DigitalObjectException("There shouldn't be more than one repository link on an item record.")
         else:
             obj['digital_object_id'] = links[0]['location']
     else:
@@ -192,8 +202,9 @@ def check_digital_object(uri):
     if instances:
         # script exits if the item has more than one digital object attached to it
         if len(instances) > 1:
-            sys.exit("An item cannot have more than one digital object. Please check ArchivesSpace to confirm your "
-                     "item is cataloged properly.")
+            raise DigitalObjectException(
+                "An item cannot have more than one digital object. Please check ArchivesSpace to confirm your "
+                "item is cataloged properly.")
         else:
             ref = instances[0]['digital_object']['ref']
             objects = [i for i in instances if i['is_representative']]
@@ -220,9 +231,11 @@ def write_uri_txt(id, path):
 
         # script exits if there are no results or if more than one archival_object has the provided call number
         if not uris:
-            sys.exit("Couldn't find this item in ArchivesSpace. Has it been cataloged? Is the call number accurate?")
+            raise DigitalObjectException("Couldn't find this item in ArchivesSpace. Has it been cataloged? Is the "
+                                         "call number accurate?")
         if len(uris) > 1:
-            sys.exit("Multiple objects with this call number found. Check ArchivesSpace for more information.")
+            raise DigitalObjectException("Multiple objects with this call number found. Check ArchivesSpace for more "
+                                         "information.")
 
         uri = uris[0]['uri']
         if os.path.exists(path):
@@ -289,4 +302,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except DigitalObjectException as e:
+        sys.exit(e.message)

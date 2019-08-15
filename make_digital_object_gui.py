@@ -8,9 +8,7 @@ from asnake.client.web_client import ASnakeAuthError
 item_dict = dict()
 pad_width = 10
 mag = magic.Magic(mime=True, magic_file=r"magic.mgc")
-ignored_file_names = ('Thumbs.db',
-                      '.DS_Store',
-                      'uri.txt')
+ignored_file_extensions = ('db', 'xml', '.DS_Store')
 
 
 class MainFrame(ttk.Frame):
@@ -120,13 +118,16 @@ class AddButton(tk.Button):
     def _button_command(self):
         file_path = self.file_path_entry.get()
         if file_path != "":
-            tree_id = self.file_listbox.insert('', 'end', text=file_path)
-            uri = check_uri_txt(file_path)
-            print(uri)
-            ref = check_digital_object(uri)
-            find_items(ref, file_path, tree_id)
+            try:
+                uri = check_uri_txt(file_path)
+                print(uri)
+                ref = check_digital_object(uri)
+                tree_id = self.file_listbox.insert('', 'end', text=file_path)
+                self.file_listbox.selection_set((tree_id,))
+                find_items(ref, file_path, tree_id)
+            except DigitalObjectException as e:
+                print(e.message)
             self.file_path_entry.entry.delete(0, 'end')
-            self.file_listbox.selection_set((tree_id,))
 
 
 class RemoveButton(tk.Button):
@@ -203,10 +204,13 @@ class FileListbox(ttk.Treeview):
 
     def delete_selection(self):
         index = self.selection()
-        if len(index) > 0:
-            self.delete(index)
-            del item_dict[index[0]]
-            display_items(self, self.item_listbox)
+        for i in index:
+            self.delete(i)
+
+    def delete(self, index):
+        super(FileListbox, self).delete((index,))
+        del item_dict[index]
+        display_items(self, self.item_listbox)
 
 
 class ItemListbox(ttk.Treeview):
@@ -239,7 +243,7 @@ def process_items(file_listbox, file_selection):
             record['digital_object'] = {'ref': item['ref']}
             post_json(item['record_uri'], record)
 
-    file_listbox.delete_selection()
+    file_listbox.delete(file_selection)
 
 
 def find_items(ref, path, tree_id):
@@ -250,7 +254,8 @@ def find_items(ref, path, tree_id):
     tree = get_json("{}/tree".format(ref))
 
     print("Checking files... ")
-    files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f not in ignored_file_names]
+    files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+             and f != 'uri.txt' and f.split(".")[-1] not in ignored_file_extensions]
     if files:
         for file in files:
             path_to_file = os.path.join(path, file)
@@ -260,6 +265,7 @@ def find_items(ref, path, tree_id):
                 print('MIME problem, setting file_format_name to blank', file=sys.stderr)
                 continue
             print("\nProcessing {}... ".format(file))
+            file_format_name = magic_to_as(file_format_name)
 
             file_size_bytes = os.path.getsize(path_to_file)
 
