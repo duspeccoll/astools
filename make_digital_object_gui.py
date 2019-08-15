@@ -9,10 +9,12 @@ item_dict = dict()
 pad_width = 10
 mag = magic.Magic(mime=True, magic_file=r"magic.mgc")
 ignored_file_extensions = ('db', 'xml', '.DS_Store')
+log_text = None
 
 
 class MainFrame(ttk.Frame):
     def __init__(self, master):
+        global log_text
         super(MainFrame, self).__init__(master)
         self.item_listbox = ItemListbox(self)
         self.item_listbox.grid(column=3, row=0, rowspan=3)
@@ -34,6 +36,14 @@ class MainFrame(ttk.Frame):
         self.process_button.grid(column=0, row=0, sticky='WE')
         self.process_all_button = ProcessAllButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
         self.process_all_button.grid(column=0, row=1, sticky='WE')
+        self.log_frame = ttk.Frame(self)
+        self.log_frame.grid(column=0, row=4, columnspan=5, sticky='W')
+        self.log_text = LogText(self.log_frame)
+        log_text = self.log_text
+        self.log_text.grid(column=0, row=0, sticky='WE')
+        self.log_text_scrollbar = ttk.Scrollbar(self.log_frame, orient='vertical', command=self.log_text.yview)
+        self.log_text_scrollbar.grid(column=1, row=0, sticky='NS')
+        self.log_text.configure(yscrollcommand=self.log_text_scrollbar.set)
 
 
 class FileInfoFrame(ttk.Frame):
@@ -130,6 +140,14 @@ class AddButton(tk.Button):
             self.file_path_entry.entry.delete(0, 'end')
 
 
+class BatchAddButton(tk.Button):
+    def __init__(self, master):
+        super(BatchAddButton, self).__init__(master)
+
+    def _button_command(self):
+        pass
+
+
 class RemoveButton(tk.Button):
     def __init__(self, master, file_listbox, item_listbox):
         super(RemoveButton, self).__init__(master, text="Remove", command=self._button_command)
@@ -222,6 +240,22 @@ class ItemListbox(ttk.Treeview):
         self.column('#0', width=125)
         self.column('caption', width=200)
         self.column('kaltura', width=75)
+        
+        
+class LogText(tk.Text):
+    def __init__(self, master):
+        super(LogText, self).__init__(master, height=20, state='disabled', width=110)
+
+
+def gui_as_log(message):
+    log_text.configure(state='normal')
+    log_text.insert('end', message+'\n')
+    log_text.see('end')
+    log_text.configure(state='disabled')
+
+
+make_digital_object.as_log = gui_as_log
+as_log = gui_as_log
 
 
 def process_items(file_listbox, file_selection):
@@ -250,10 +284,10 @@ def find_items(ref, path, tree_id):
     if tree_id not in item_dict:
         item_dict[tree_id] = list()
 
-    print("Fetching digital object tree... ")
+    as_log("Fetching digital object tree... ")
     tree = get_json("{}/tree".format(ref))
 
-    print("Checking files... ")
+    as_log("Checking files... ")
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
              and f != 'uri.txt' and f.split(".")[-1] not in ignored_file_extensions]
     if files:
@@ -264,7 +298,7 @@ def find_items(ref, path, tree_id):
             except magic.MagicException:
                 print('MIME problem, setting file_format_name to blank', file=sys.stderr)
                 continue
-            print("\nProcessing {}... ".format(file))
+            as_log("\nProcessing {}... ".format(file))
             file_format_name = magic_to_as(file_format_name)
 
             file_size_bytes = os.path.getsize(path_to_file)
@@ -272,7 +306,7 @@ def find_items(ref, path, tree_id):
             tree_files = [child for child in tree['children'] if child['title'] == file]
 
             if tree_files:
-                print("Checking for file-level metadata updates... ")
+                as_log("Checking for file-level metadata updates... ")
                 for child in tree['children']:
                     # is this if statement redundunt considering the above list comprehension? -Alice
                     if child['title'] == file:

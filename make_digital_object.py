@@ -40,11 +40,11 @@ def post_json(uri, data):
     message = json.loads(r.text)
     if r.status_code == 200:
         if 'uri' in message:
-            print("{}: {}".format(message['status'], message['uri']))
+            as_log("{}: {}".format(message['status'], message['uri']))
         else:
-            print("{}: {}".format(message['status'], uri))
+            as_log("{}: {}".format(message['status'], uri))
     else:
-        print("Error: {}".format(message['error']))
+        as_log("Error: {}".format(message['error']))
 
 
 def magic_to_as(file_format_name):
@@ -161,7 +161,7 @@ def process_files(ref, path, no_kaltura_id, no_caption):
 
 # create a digital object and attach it to the provided item record
 def write_digital_object(item):
-    print("Creating digital object... ")
+    as_log("Creating digital object... ")
     obj = {'title': item['display_string'], 'jsonmodel_type': "digital_object"}
 
     links = [d for d in item['external_documents'] if d['title'] == "Special Collections @ DU"]
@@ -193,10 +193,10 @@ def write_digital_object(item):
 # given a URI from uri.txt, download the item record and check that it is cataloged according to the digital object
 # metadata specification
 def check_digital_object(uri):
-    print("Downloading item... ")
+    as_log("Downloading item... ")
     item = get_json(uri)
 
-    print("Checking for digital object... ")
+    as_log("Checking for digital object... ")
     instances = [i for i in item['instances'] if i['instance_type'] == "digital_object"]
 
     if instances:
@@ -209,7 +209,7 @@ def check_digital_object(uri):
             ref = instances[0]['digital_object']['ref']
             objects = [i for i in instances if i['is_representative']]
             if not objects:
-                print("Making the digital object representative... ")
+                as_log("Making the digital object representative... ")
                 for instance in item['instances']:
                     if instance['digital_object']['ref'] == ref:
                         instance['is_representative'] = True
@@ -223,7 +223,7 @@ def check_digital_object(uri):
 # write uri.txt by searching for the component ID specified in the directory name and fetching its URI
 def write_uri_txt(id, path):
     global AS
-    print("Writing uri.txt... ")
+    as_log("Writing uri.txt... ")
     resp = AS.client.get('/repositories/2/search', params={'q': id, 'type[]': "archival_object", 'page': "1"})
     if resp.status_code == 200:
         results = json.loads(resp.text)['results']
@@ -253,10 +253,10 @@ def write_uri_txt(id, path):
 def check_uri_txt(path):
     component_id = path.split("/")[-1]
     uri_txt = "{}/uri.txt".format(path)
-    print("Checking for uri.txt... ")
+    as_log("Checking for uri.txt... ")
 
     if os.path.exists(uri_txt):
-        print("Checking if URI matches item record... ")
+        as_log("Checking if URI matches item record... ")
         with open(uri_txt, 'r') as f:
             uri = f.read().replace('\n', '')
             item = get_json(uri)
@@ -282,6 +282,10 @@ def get_path(path=None):
                 return path
             else:
                 print("Please enter a path")
+
+
+def as_log(message):
+    print(message)
 
 
 def main():
