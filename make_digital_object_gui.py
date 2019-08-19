@@ -246,7 +246,7 @@ class FileListbox(ttk.Treeview):
         super(FileListbox, self).__init__(master, selectmode='browse')
         self.item_listbox = item_listbox
         self.heading('#0', text='Path')
-        #self.column('#0', width=300)
+        self.column('#0', width=300)
         self.bind('<<TreeviewSelect>>', lambda e: display_items(self, self.item_listbox))
 
     def delete_selection(self):
