@@ -350,6 +350,7 @@ def add_file(file_path, file_listbox, item_listbox, file_path_entry):
         as_log(uri)
         ref = check_digital_object(uri)
         tree_id = file_listbox.insert('', 'end', text=file_path)
+        file_listbox.see(tree_id)
         file_listbox.selection_set((tree_id,))
         find_items(ref, file_path, tree_id)
         display_items(file_listbox, item_listbox)
@@ -506,12 +507,6 @@ def unlock_process():
     process_lock.release()
     root.configure(cursor='')
     disable_all_buttons(root, True)
-
-
-def test_scrollbars(file_listbox):
-    for i in range(30):
-        file_name = 'file' + str(i)
-        file_listbox.insert('', 'end', text=file_name)
 
 
 def main():
