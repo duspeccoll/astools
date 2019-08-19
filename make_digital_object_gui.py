@@ -17,19 +17,19 @@ class MainFrame(ttk.Frame):
         global log_text
         super(MainFrame, self).__init__(master)
         self.item_listbox = ItemListbox(self)
-        self.item_listbox.grid(column=3, row=0, rowspan=3)
+        self.item_listbox.grid(column=3, row=0, rowspan=3, sticky='NSWE')
         self.item_listbox_scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.item_listbox.yview)
-        self.item_listbox_scrollbar.grid(column=4, row=0, rowspan=3, sticky='NS')
+        self.item_listbox_scrollbar.grid(column=4, row=0, rowspan=3, sticky='NSW')
         self.item_listbox.configure(yscrollcommand=self.item_listbox_scrollbar.set)
         self.file_listbox = FileListbox(self, self.item_listbox)
-        self.file_listbox.grid(column=0, row=0, rowspan=3)
+        self.file_listbox.grid(column=0, row=0, rowspan=3, sticky='WENS')
         self.file_listbox_scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.file_listbox.yview)
         self.file_listbox_scrollbar.grid(column=1, row=0, rowspan=3, sticky='NS')
         self.file_listbox.configure(yscrollcommand=self.file_listbox_scrollbar.set)
         self.file_info_frame = FileInfoFrame(self, self.file_listbox, self.item_listbox)
         self.file_info_frame.grid(column=0, row=3, sticky="W", padx=pad_width)
         self.item_info_frame = ItemInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.item_info_frame.grid(column=3, row=3)
+        self.item_info_frame.grid(column=3, row=3, sticky="E")
         self.process_buttons_frame = ttk.Frame(self)
         self.process_buttons_frame.grid(column=2, row=1, padx=pad_width)
         self.process_button = ProcessButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
@@ -37,16 +37,26 @@ class MainFrame(ttk.Frame):
         self.process_all_button = ProcessAllButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
         self.process_all_button.grid(column=0, row=1, sticky='WE')
         self.log_frame = ttk.Frame(self)
-        self.log_frame.grid(column=0, row=5, columnspan=5, sticky='W', pady=pad_width)
+        self.log_frame.grid(column=0, row=5, columnspan=5, sticky='NSWE', pady=pad_width)
         self.log_text = LogText(self.log_frame)
         log_text = self.log_text
-        self.log_text.grid(column=0, row=0, sticky='WE')
+        self.log_text.grid(column=0, row=0, sticky='WENS')
         self.log_text_scrollbar = ttk.Scrollbar(self.log_frame, orient='vertical', command=self.log_text.yview)
-        self.log_text_scrollbar.grid(column=1, row=0, sticky='NS')
+        self.log_text_scrollbar.grid(column=1, row=0, sticky='WNS')
         self.log_text.configure(yscrollcommand=self.log_text_scrollbar.set)
         self.log_frame.grid_remove()
         self.show_log_button = ShowLogButton(self, log_frame=self.log_frame)
-        self.show_log_button.grid(column=4, row=4)
+        self.show_log_button.grid(column=4, row=4, sticky="WS")
+
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(3, weight=2)
+
+        self.rowconfigure(0, weight=2)
+        self.rowconfigure(4, weight=1)
+        self.rowconfigure(5, weight=2)
+
+        self.log_frame.columnconfigure(0, weight=1)
+        self.log_frame.rowconfigure('all', weight=1)
 
 
 class FileInfoFrame(ttk.Frame):
@@ -57,12 +67,12 @@ class FileInfoFrame(ttk.Frame):
         self.add_remove_buttons_frame = ttk.Frame(self)
         self.add_remove_buttons_frame.grid(column=0, row=1, sticky='W')
         self.add_button = AddButton(self.add_remove_buttons_frame, self.file_path_entry, file_listbox, item_listbox)
-        self.add_button.grid(column=0, row=0, sticky='W')
+        self.add_button.grid(column=0, row=0, sticky='WE', padx=2, pady=2)
         self.remove_button = RemoveButton(self.add_remove_buttons_frame, file_listbox, item_listbox)
         self.remove_button.grid(column=1, row=0, sticky='W')
-        self.batch_add_button = BatchAddButton(self.add_remove_buttons_frame, self.file_path_entry, file_listbox, item_listbox)
-        #self.batch_add_button.grid(column=0, row=1, sticky="W")
-        self.add_remove_buttons_frame.columnconfigure('all', pad=2)
+        self.batch_add_button = BatchAddButton(self.add_remove_buttons_frame, self.file_path_entry,
+                                               file_listbox, item_listbox)
+        self.batch_add_button.grid(column=0, row=1, sticky="WE", padx=5)
         self.browse_button = BrowseButton(self.file_path_entry, self.file_path_entry)
         self.browse_button.grid(column=1, row=1, padx=pad_width)
 
@@ -145,10 +155,9 @@ class BatchAddButton(tk.Button):
 
     def _button_command(self):
         path = self.file_path_entry.get()
-        files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+        files = [f for f in os.scandir(path) if f.is_dir()]
         for file in files:
-            add_file(os.path.join(path, file), self.file_listbox, self.file_path_entry)
-
+            add_file(file.path.replace("\\", '/'), self.file_listbox, self.file_path_entry)
 
 
 class RemoveButton(tk.Button):
@@ -237,7 +246,7 @@ class FileListbox(ttk.Treeview):
         super(FileListbox, self).__init__(master, selectmode='browse')
         self.item_listbox = item_listbox
         self.heading('#0', text='Path')
-        self.column('#0', width=300)
+        #self.column('#0', width=300)
         self.bind('<<TreeviewSelect>>', lambda e: display_items(self, self.item_listbox))
 
     def delete_selection(self):
@@ -401,7 +410,9 @@ def display_items(file_listbox, item_listbox):
 
 def setup_gui(root):
     main_frame = MainFrame(root)
-    main_frame.grid()
+    main_frame.grid(column=0, row=0, sticky='WENS')
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
 
 
 def test_scrollbars(file_listbox):
