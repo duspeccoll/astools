@@ -516,7 +516,8 @@ def main():
     except ASnakeAuthError:
         print("Could not connect to ArchivesSpace.", file=sys.stderr)
     root = tk.Tk()
-    root.title("Make Digital Object")
+    root.title("Make Digital Object Utility")
+    root.iconbitmap('favicon.ico')
     root.configure(padx=pad_width, pady=pad_width)
     setup_gui(root)
     root.mainloop()
