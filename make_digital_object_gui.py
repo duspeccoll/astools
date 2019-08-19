@@ -4,12 +4,15 @@ from tkinter import ttk
 import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
+import threading
 
 item_dict = dict()
 pad_width = 10
 mag = magic.Magic(mime=True, magic_file=r"magic.mgc")
 ignored_file_extensions = ('db', 'xml', '.DS_Store')
 log_text = None
+root = None
+process_lock = threading.Lock()
 
 
 class MainFrame(ttk.Frame):
@@ -29,7 +32,7 @@ class MainFrame(ttk.Frame):
         self.file_info_frame = FileInfoFrame(self, self.file_listbox, self.item_listbox)
         self.file_info_frame.grid(column=0, row=3, sticky="W", padx=pad_width)
         self.item_info_frame = ItemInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.item_info_frame.grid(column=3, row=3, sticky="E")
+        self.item_info_frame.grid(column=3, row=3, sticky="W")
         self.process_buttons_frame = ttk.Frame(self)
         self.process_buttons_frame.grid(column=2, row=1, padx=pad_width)
         self.process_button = ProcessButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
@@ -46,7 +49,7 @@ class MainFrame(ttk.Frame):
         self.log_text.configure(yscrollcommand=self.log_text_scrollbar.set)
         self.log_frame.grid_remove()
         self.show_log_button = ShowLogButton(self, log_frame=self.log_frame)
-        self.show_log_button.grid(column=4, row=4, sticky="WS")
+        self.show_log_button.grid(column=3, row=4, sticky="ES")
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(3, weight=2)
@@ -72,7 +75,7 @@ class FileInfoFrame(ttk.Frame):
         self.remove_button.grid(column=1, row=0, sticky='W')
         self.batch_add_button = BatchAddButton(self.add_remove_buttons_frame, self.file_path_entry,
                                                file_listbox, item_listbox)
-        self.batch_add_button.grid(column=0, row=1, sticky="WE", padx=5)
+        self.batch_add_button.grid(column=0, row=1, sticky="WE", padx=2)
         self.browse_button = BrowseButton(self.file_path_entry, self.file_path_entry)
         self.browse_button.grid(column=1, row=1, padx=pad_width)
 
@@ -141,9 +144,10 @@ class AddButton(tk.Button):
         self.item_listbox = item_listbox
 
     def _button_command(self):
-        file_path = self.file_path_entry.get()
-        if file_path != "":
-            add_file(file_path, self.file_listbox, self.file_path_entry)
+        global root
+        add_thread = AddThread(self.file_path_entry, self.file_listbox, self.item_listbox)
+        add_thread.start()
+        disable_all_buttons(root)
 
 
 class BatchAddButton(tk.Button):
@@ -154,10 +158,10 @@ class BatchAddButton(tk.Button):
         self.item_listbox = item_listbox
 
     def _button_command(self):
-        path = self.file_path_entry.get()
-        files = [f for f in os.scandir(path) if f.is_dir()]
-        for file in files:
-            add_file(file.path.replace("\\", '/'), self.file_listbox, self.file_path_entry)
+        global root
+        root.configure(cursor='wait')
+        batch_add_thread = BatchAddThread(self.file_path_entry, self.file_listbox, self.item_listbox)
+        batch_add_thread.start()
 
 
 class RemoveButton(tk.Button):
@@ -208,8 +212,8 @@ class ProcessButton(tk.Button):
         self.item_listbox = item_listbox
 
     def _button_command(self):
-        file_selection = self.file_listbox.selection()[0]
-        process_items(self.file_listbox, file_selection)
+        process_thread = ProcessThread(self.file_listbox)
+        process_thread.start()
 
 
 class ProcessAllButton(tk.Button):
@@ -219,9 +223,8 @@ class ProcessAllButton(tk.Button):
         self.item_listbox = item_listbox
 
     def _button_command(self):
-        files = self.file_listbox.get_children()
-        for f in files:
-            process_items(self.file_listbox, f)
+        process_all_thread = ProcessAllThread(self.file_listbox)
+        process_all_thread.start()
 
 
 class ShowLogButton(tk.Button):
@@ -247,7 +250,7 @@ class FileListbox(ttk.Treeview):
         self.item_listbox = item_listbox
         self.heading('#0', text='Path')
         self.column('#0', width=300)
-        self.bind('<<TreeviewSelect>>', lambda e: display_items(self, self.item_listbox))
+        self.bind('<<TreeviewSelect>>', lambda _: display_items(self, self.item_listbox))
 
     def delete_selection(self):
         index = self.selection()
@@ -276,7 +279,72 @@ class LogText(tk.Text):
         super(LogText, self).__init__(master, height=20, state='disabled', width=110)
 
 
-def add_file(file_path, file_listbox, file_path_entry):
+class AddThread(threading.Thread):
+    def __init__(self, file_path_entry, file_listbox, item_listbox):
+        super(AddThread, self).__init__()
+        self.file_path_entry = file_path_entry
+        self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
+
+    def run(self):
+        lock_process()
+
+        file_path = self.file_path_entry.get()
+        if file_path != "":
+            add_file(file_path, self.file_listbox, self.item_listbox, self.file_path_entry)
+
+        unlock_process()
+
+
+class BatchAddThread(threading.Thread):
+    def __init__(self, file_path_entry, file_listbox, item_listbox):
+        super(BatchAddThread, self).__init__()
+        self.file_path_entry = file_path_entry
+        self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
+
+    def run(self):
+        lock_process()
+
+        path = self.file_path_entry.get()
+        if path != "":
+            files = [f for f in os.scandir(path) if f.is_dir()]
+            for file in files:
+                add_file(file.path.replace("\\", '/'), self.file_listbox, self.item_listbox, self.file_path_entry)
+
+        unlock_process()
+
+
+class ProcessThread(threading.Thread):
+    def __init__(self, file_listbox):
+        super(ProcessThread, self).__init__()
+        self.file_listbox = file_listbox
+
+    def run(self):
+        lock_process()
+
+        file_selection = self.file_listbox.selection()[0]
+        process_items(self.file_listbox, file_selection)
+
+        unlock_process()
+
+
+class ProcessAllThread(threading.Thread):
+    def __init__(self, file_listbox):
+        super(ProcessAllThread, self).__init__()
+        self.file_listbox = file_listbox
+
+    def run(self):
+        lock_process()
+
+        files = self.file_listbox.get_children()
+        for f in files:
+            process_items(self.file_listbox, f)
+
+        unlock_process()
+
+
+def add_file(file_path, file_listbox, item_listbox, file_path_entry):
     try:
         uri = check_uri_txt(file_path)
         as_log(uri)
@@ -284,6 +352,7 @@ def add_file(file_path, file_listbox, file_path_entry):
         tree_id = file_listbox.insert('', 'end', text=file_path)
         file_listbox.selection_set((tree_id,))
         find_items(ref, file_path, tree_id)
+        display_items(file_listbox, item_listbox)
     except DigitalObjectException as exc:
         as_log(exc.message)
     file_path_entry.entry.delete(0, 'end')
@@ -408,11 +477,35 @@ def display_items(file_listbox, item_listbox):
             item_listbox.selection_set(('I1',))
 
 
-def setup_gui(root):
-    main_frame = MainFrame(root)
+def setup_gui(toplevel):
+    main_frame = MainFrame(toplevel)
     main_frame.grid(column=0, row=0, sticky='WENS')
-    root.columnconfigure(0, weight=1)
-    root.rowconfigure(0, weight=1)
+    toplevel.columnconfigure(0, weight=1)
+    toplevel.rowconfigure(0, weight=1)
+
+
+def disable_all_buttons(widget, enable=False):
+    for c in widget.winfo_children():
+        if c.winfo_class() == "Button":
+            if enable:
+                c.configure(state='normal')
+            else:
+                c.configure(state='disabled')
+        disable_all_buttons(c, enable=enable)
+
+
+def lock_process():
+    global root
+    process_lock.acquire()
+    root.configure(cursor='wait')
+    disable_all_buttons(root)
+
+
+def unlock_process():
+    global root
+    process_lock.release()
+    root.configure(cursor='')
+    disable_all_buttons(root, True)
 
 
 def test_scrollbars(file_listbox):
@@ -422,6 +515,7 @@ def test_scrollbars(file_listbox):
 
 
 def main():
+    global root
     try:
         make_digital_object.AS = ASpace()
     except ASnakeAuthError:
