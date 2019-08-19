@@ -480,7 +480,7 @@ def display_items(file_listbox, item_listbox):
 
 def setup_gui(toplevel):
     main_frame = MainFrame(toplevel)
-    main_frame.grid(column=0, row=0, sticky='WENS')
+    main_frame.grid(column=0, row=0, sticky='WENS', padx=pad_width, pady=pad_width)
     toplevel.columnconfigure(0, weight=1)
     toplevel.rowconfigure(0, weight=1)
 
@@ -518,7 +518,6 @@ def main():
     root = tk.Tk()
     root.title("Make Digital Object Utility")
     root.iconbitmap('favicon.ico')
-    root.configure(padx=pad_width, pady=pad_width)
     setup_gui(root)
     root.mainloop()
 
