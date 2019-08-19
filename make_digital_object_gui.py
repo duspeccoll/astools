@@ -37,13 +37,16 @@ class MainFrame(ttk.Frame):
         self.process_all_button = ProcessAllButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
         self.process_all_button.grid(column=0, row=1, sticky='WE')
         self.log_frame = ttk.Frame(self)
-        self.log_frame.grid(column=0, row=4, columnspan=5, sticky='W')
+        self.log_frame.grid(column=0, row=5, columnspan=5, sticky='W', pady=pad_width)
         self.log_text = LogText(self.log_frame)
         log_text = self.log_text
         self.log_text.grid(column=0, row=0, sticky='WE')
         self.log_text_scrollbar = ttk.Scrollbar(self.log_frame, orient='vertical', command=self.log_text.yview)
         self.log_text_scrollbar.grid(column=1, row=0, sticky='NS')
         self.log_text.configure(yscrollcommand=self.log_text_scrollbar.set)
+        self.log_frame.grid_remove()
+        self.show_log_button = ShowLogButton(self, log_frame=self.log_frame)
+        self.show_log_button.grid(column=4, row=4)
 
 
 class FileInfoFrame(ttk.Frame):
@@ -57,6 +60,8 @@ class FileInfoFrame(ttk.Frame):
         self.add_button.grid(column=0, row=0, sticky='W')
         self.remove_button = RemoveButton(self.add_remove_buttons_frame, file_listbox, item_listbox)
         self.remove_button.grid(column=1, row=0, sticky='W')
+        self.batch_add_button = BatchAddButton(self.add_remove_buttons_frame, self.file_path_entry, file_listbox, item_listbox)
+        #self.batch_add_button.grid(column=0, row=1, sticky="W")
         self.add_remove_buttons_frame.columnconfigure('all', pad=2)
         self.browse_button = BrowseButton(self.file_path_entry, self.file_path_entry)
         self.browse_button.grid(column=1, row=1, padx=pad_width)
@@ -128,24 +133,22 @@ class AddButton(tk.Button):
     def _button_command(self):
         file_path = self.file_path_entry.get()
         if file_path != "":
-            try:
-                uri = check_uri_txt(file_path)
-                print(uri)
-                ref = check_digital_object(uri)
-                tree_id = self.file_listbox.insert('', 'end', text=file_path)
-                self.file_listbox.selection_set((tree_id,))
-                find_items(ref, file_path, tree_id)
-            except DigitalObjectException as e:
-                print(e.message)
-            self.file_path_entry.entry.delete(0, 'end')
+            add_file(file_path, self.file_listbox, self.file_path_entry)
 
 
 class BatchAddButton(tk.Button):
-    def __init__(self, master):
-        super(BatchAddButton, self).__init__(master)
+    def __init__(self, master, file_path_entry, file_listbox, item_listbox):
+        super(BatchAddButton, self).__init__(master, text='Batch Add', command=self._button_command)
+        self.file_path_entry = file_path_entry
+        self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
 
     def _button_command(self):
-        pass
+        path = self.file_path_entry.get()
+        files = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+        for file in files:
+            add_file(os.path.join(path, file), self.file_listbox, self.file_path_entry)
+
 
 
 class RemoveButton(tk.Button):
@@ -212,6 +215,23 @@ class ProcessAllButton(tk.Button):
             process_items(self.file_listbox, f)
 
 
+class ShowLogButton(tk.Button):
+    def __init__(self, master, log_frame):
+        super(ShowLogButton, self).__init__(master, text='Show Log', command=self._button_command)
+        self.hidden = True
+        self.log_frame = log_frame
+
+    def _button_command(self):
+        if self.hidden:
+            self.log_frame.grid()
+            self.hidden = False
+            self.configure(text='Hide Log')
+        else:
+            self.log_frame.grid_remove()
+            self.hidden = True
+            self.configure(text='Show Log')
+
+
 class FileListbox(ttk.Treeview):
     def __init__(self, master, item_listbox):
         super(FileListbox, self).__init__(master, selectmode='browse')
@@ -245,6 +265,19 @@ class ItemListbox(ttk.Treeview):
 class LogText(tk.Text):
     def __init__(self, master):
         super(LogText, self).__init__(master, height=20, state='disabled', width=110)
+
+
+def add_file(file_path, file_listbox, file_path_entry):
+    try:
+        uri = check_uri_txt(file_path)
+        as_log(uri)
+        ref = check_digital_object(uri)
+        tree_id = file_listbox.insert('', 'end', text=file_path)
+        file_listbox.selection_set((tree_id,))
+        find_items(ref, file_path, tree_id)
+    except DigitalObjectException as exc:
+        as_log(exc.message)
+    file_path_entry.entry.delete(0, 'end')
 
 
 def gui_as_log(message):
