@@ -13,6 +13,7 @@ try:
     pymagic_flag = True
 except magic.MagicException:
     pymagic_flag = False
+    print("default loaded")
 
 ignored_file_extensions = ('db', 'xml', '.DS_Store')
 log_text = None
@@ -355,10 +356,10 @@ def add_file(file_path, file_listbox, item_listbox, file_path_entry):
         as_log(uri)
         ref = check_digital_object(uri)
         tree_id = file_listbox.insert('', 'end', text=file_path)
-        file_listbox.see(tree_id)
-        file_listbox.selection_set((tree_id,))
         find_items(ref, file_path, tree_id)
         display_items(file_listbox, item_listbox)
+        file_listbox.see(tree_id)
+        file_listbox.selection_set((tree_id,))
     except DigitalObjectException as exc:
         as_log(exc.message)
     file_path_entry.entry.delete(0, 'end')
