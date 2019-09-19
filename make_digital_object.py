@@ -55,6 +55,8 @@ def magic_to_as(file_format_name):
         file_format_name = "mov"
     elif file_format_name == "mpeg":
         file_format_name = "mp3"
+    elif file_format_name == "x-font-gdos":
+        file_format_name = "mp3"
     elif file_format_name == "vnd.adobe.photoshop":
         file_format_name = "tiff"
     return file_format_name
@@ -69,7 +71,6 @@ def process_files(ref, path, no_kaltura_id, no_caption):
     files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f != "uri.txt"]
     if files:
         for file in files:
-            print("\nProcessing {}... ".format(file))
             path_to_file = os.path.join(path, file)
             file_format_name = magic.from_file(path_to_file, mime=True).split("/")[-1]
             file_size_bytes = os.path.getsize(path_to_file)
@@ -139,8 +140,8 @@ def process_files(ref, path, no_kaltura_id, no_caption):
                         'file_versions': [{
                             'jsonmodel_type': "file_version",
                             'file_uri': file,
-                            'file_format_name': magic.from_file(path_to_file, mime=True).split("/")[-1],
-                            'file_size_bytes': os.path.getsize(path_to_file),
+                            'file_format_name': file_format_name,
+                            'file_size_bytes': file_size_bytes,
                             'is_representative': True
                         }],
                         'digital_object': {'ref': ref}
@@ -221,13 +222,13 @@ def check_digital_object(uri):
 
 
 # write uri.txt by searching for the component ID specified in the directory name and fetching its URI
-def write_uri_txt(id, path):
+def write_uri_txt(component_id, path):
     global AS
     as_log("Writing uri.txt... ")
-    resp = AS.client.get('/repositories/2/search', params={'q': id, 'type[]': "archival_object", 'page': "1"})
+    resp = AS.client.get('/repositories/2/search', params={'q': component_id, 'type[]': "archival_object", 'page': "1"})
     if resp.status_code == 200:
         results = json.loads(resp.text)['results']
-        uris = [r for r in results if r['component_id'] == id and 'pui' not in r['types']]
+        uris = [r for r in results if r['component_id'] == component_id and 'pui' not in r['types']]
 
         # script exits if there are no results or if more than one archival_object has the provided call number
         if not uris:
