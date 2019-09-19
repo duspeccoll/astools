@@ -474,7 +474,7 @@ def magic_from_file(path_to_file):
     if pymagic_flag:
         return mag.from_file(path_to_file)
     else:
-        return magic.from_file(path_to_file)
+        return magic.from_file(path_to_file, mime=True)
 
 
 def display_items(file_listbox, item_listbox):
