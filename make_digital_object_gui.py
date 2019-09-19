@@ -8,7 +8,12 @@ import threading
 
 item_dict = dict()
 pad_width = 10
-mag = magic.Magic(mime=True, magic_file=r"magic.mgc")
+try:
+    mag = magic.Magic(mime=True, magic_file=r"magic.mgc")
+    pymagic_flag = True
+except magic.MagicException:
+    pymagic_flag = False
+
 ignored_file_extensions = ('db', 'xml', '.DS_Store')
 log_text = None
 root = None
@@ -406,7 +411,7 @@ def find_items(ref, path, tree_id):
         for file in files:
             path_to_file = os.path.join(path, file)
             try:
-                file_format_name = mag.from_file(path_to_file).split("/")[-1]
+                file_format_name = magic_from_file(path_to_file).split("/")[-1]
             except magic.MagicException:
                 print('MIME problem, setting file_format_name to blank', file=sys.stderr)
                 continue
@@ -463,6 +468,13 @@ def find_items(ref, path, tree_id):
                 }
                 item_dict[tree_id].append({'child': file, 'caption': '', 'kaltura': '',
                                            'data': data, 'type': 'new', 'ref': ref})
+
+
+def magic_from_file(path_to_file):
+    if pymagic_flag:
+        return mag.from_file(path_to_file)
+    else:
+        return magic.from_file(path_to_file)
 
 
 def display_items(file_listbox, item_listbox):
