@@ -289,6 +289,12 @@ def as_log(message):
     print(message)
 
 
+def process(path, no_kaltura_id, no_caption):
+    uri = check_uri_txt(path)
+    ref = check_digital_object(uri)
+    process_files(ref, path, no_kaltura_id, no_caption)
+
+
 def main():
     global AS
     AS = ASpace()
@@ -301,9 +307,7 @@ def main():
     path = get_path(args.path)
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
-    uri = check_uri_txt(path)
-    ref = check_digital_object(uri)
-    process_files(ref, path, no_kaltura_id, no_caption)
+    process(path, no_kaltura_id, no_caption)
 
 
 if __name__ == "__main__":
