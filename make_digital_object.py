@@ -11,6 +11,7 @@
 #    (process_files)
 
 import argparse
+import csv
 import json
 import magic
 import os
@@ -300,14 +301,29 @@ def main():
     AS = ASpace()
     parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
     parser.add_argument('-p', '--path', help="The directory to process")
+    parser.add_argument('-b', '--batch', help="A CSV file containing a list of directories to process in a batch")
     parser.add_argument('--no_kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
     parser.add_argument('--no_caption', help="Do not prompt the user to provide captions", action='store_true')
 
     args = parser.parse_args()
-    path = get_path(args.path)
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
-    process(path, no_kaltura_id, no_caption)
+    if args.batch:
+        try:
+            with open(args.batch, 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    path = get_path(row[0])
+                    try:
+                        process(path, no_kaltura_id, no_caption)
+                    except DigitalObjectException as e:
+                        print(e.message)
+                        continue
+        except FileNotFoundError as e:
+            print(e)
+    else:
+        path = get_path(args.path)
+        process(path, no_kaltura_id, no_caption)
 
 
 if __name__ == "__main__":
