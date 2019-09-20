@@ -5,6 +5,7 @@ import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 import threading
+from asnake.client import ASnakeClient
 
 item_dict = dict()
 pad_width = 10
@@ -285,8 +286,8 @@ class ItemListbox(ttk.Treeview):
         self.column('#0', width=125)
         self.column('caption', width=200)
         self.column('kaltura', width=75)
-        
-        
+
+
 class LogText(tk.Text):
     def __init__(self, master):
         super(LogText, self).__init__(master, height=20, state='disabled', width=110)
@@ -357,6 +358,55 @@ class ProcessAllThread(threading.Thread):
         unlock_process()
 
 
+class CredentialsWindow(tk.Tk):
+    def __init__(self):
+        global root
+        super(CredentialsWindow, self).__init__()
+
+        self.title('Credentials')
+
+        self.baseurl_label = ttk.Label(self, text="Base Archivesspace URL")
+        self.baseurl_label.grid(column=0, row=0)
+        self.baseurl_entry = ttk.Entry(self)
+        self.baseurl_entry.grid(column=0, row=1)
+
+        self.username_label = ttk.Label(self, text="Username")
+        self.username_label.grid(column=0, row=2)
+        self.username_entry = ttk.Entry(self)
+        self.username_entry.grid(column=0, row=3)
+
+        self.password_label = ttk.Label(self, text="Password")
+        self.password_label.grid(column=0, row=4)
+        self.password_entry = ttk.Entry(self)
+        self.password_entry.grid(column=0, row=5)
+
+        self.confirm_button = ttk.Button(text="Confirm", command=self._confirm_button_command)
+        self.confirm_button.grid(column=0, row=6)
+
+        self.bind('<Return>', self._confirm_button_command)
+
+        self.mainloop()
+
+    def _confirm_button_command(self, _):
+        global root
+        try:
+            make_digital_object.AS = ASpace(baseurl=self.baseurl_entry.get(),
+                                            username=self.username_entry.get(),
+                                            password=self.password_entry.get())
+
+            with open('credentials.json', mode='w') as credentials:
+                data = {'baseurl': self.baseurl_entry.get(),
+                        'username': self.username_entry.get(),
+                        'password': self.password_entry.get()}
+                json.dump(data, credentials)
+                self.destroy()
+
+        except ASnakeAuthError:
+            self.baseurl_entry.delete(0, 'end')
+            self.username_entry.delete(0, 'end')
+            self.password_entry.delete(0, 'end')
+
+
 def add_file(file_path, file_listbox, item_listbox, file_path_entry):
     try:
         uri = check_uri_txt(file_path)
@@ -372,9 +422,9 @@ def add_file(file_path, file_listbox, item_listbox, file_path_entry):
     file_path_entry.entry.delete(0, 'end')
 
 
-def gui_as_log(message):
+def gui_as_log(message=''):
     log_text.configure(state='normal')
-    log_text.insert('end', message+'\n')
+    log_text.insert('end', message + '\n')
     log_text.see('end')
     log_text.configure(state='disabled')
 
@@ -529,16 +579,27 @@ def unlock_process():
     disable_all_buttons(root, True)
 
 
+def check_credentials():
+    try:
+        with open('credentials.json') as credentials:
+            data = json.load(credentials)
+            make_digital_object.AS = ASpace(baseurl=data['baseurl'],
+                                            username=data['username'],
+                                            password=data['password'])
+    except FileNotFoundError:
+        CredentialsWindow()
+
+
 def main():
     global root
-    try:
-        make_digital_object.AS = ASpace()
-    except ASnakeAuthError:
-        print("Could not connect to ArchivesSpace.", file=sys.stderr)
+
+    check_credentials()
+
     root = tk.Tk()
     root.title("Make Digital Object Utility")
     root.iconbitmap('favicon.ico')
     setup_gui(root)
+
     root.mainloop()
 
 
