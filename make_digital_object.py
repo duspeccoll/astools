@@ -225,7 +225,6 @@ def check_digital_object(uri):
 # write uri.txt by searching for the component ID specified in the directory name and fetching its URI
 def write_uri_txt(component_id, path):
     global AS
-    as_log("Writing uri.txt... ")
     resp = AS.client.get('/repositories/2/search', params={'q': component_id, 'type[]': "archival_object", 'page': "1"})
     if resp.status_code == 200:
         results = json.loads(resp.text)['results']
@@ -242,6 +241,7 @@ def write_uri_txt(component_id, path):
         uri = uris[0]['uri']
         if os.path.exists(path):
             os.remove(path)
+        as_log("Writing uri.txt... ")
         with open(path, 'w') as f:
             f.write(uri)
 
