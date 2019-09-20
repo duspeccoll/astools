@@ -35,16 +35,19 @@ class MainFrame(ttk.Frame):
         self.file_listbox_scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.file_listbox.yview)
         self.file_listbox_scrollbar.grid(column=1, row=0, rowspan=3, sticky='NS')
         self.file_listbox.configure(yscrollcommand=self.file_listbox_scrollbar.set)
+
         self.file_info_frame = FileInfoFrame(self, self.file_listbox, self.item_listbox)
         self.file_info_frame.grid(column=0, row=3, sticky="W", padx=pad_width)
         self.item_info_frame = ItemInfoFrame(self, self.file_listbox, self.item_listbox)
         self.item_info_frame.grid(column=3, row=3, sticky="W")
+
         self.process_buttons_frame = ttk.Frame(self)
         self.process_buttons_frame.grid(column=2, row=1, padx=pad_width)
         self.process_button = ProcessButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
         self.process_button.grid(column=0, row=0, sticky='WE')
         self.process_all_button = ProcessAllButton(self.process_buttons_frame, self.file_listbox, self.item_listbox)
         self.process_all_button.grid(column=0, row=1, sticky='WE')
+
         self.log_frame = ttk.Frame(self)
         self.log_frame.grid(column=0, row=5, columnspan=5, sticky='NSWE', pady=pad_width)
         self.log_text = LogText(self.log_frame)
@@ -204,8 +207,12 @@ class SetCaptionButton(tk.Button):
         item_selection = self.item_listbox.selection()
         item_index = int(item_selection[0][1:]) - 1
         item_list = item_dict[file_index]
-        item_list[item_index]['caption'] = self.caption_entry.get()
-        item_list[item_index]['kaltura'] = self.kaltura_entry.get()
+        if self.caption_entry.get() != item_list[item_index]['caption'] or \
+                self.kaltura_entry.get() != item_list[item_index]['kaltura']:
+            item_list[item_index]['caption'] = self.caption_entry.get()
+            item_list[item_index]['kaltura'] = self.kaltura_entry.get()
+            if item_list[item_index]['type'] == 'old':
+                item_list[item_index]['type'] = 'changed'
         self.caption_entry.entry.delete(0, 'end')
         self.kaltura_entry.entry.delete(0, 'end')
         display_items(self.file_listbox, self.item_listbox)
@@ -386,7 +393,7 @@ def process_items(file_listbox, file_selection):
             if item['kaltura'] != '':
                 data['children'][0]['component_id'] = item['kaltura']
             post_json("{}/children".format(item['ref']), data)
-        else:
+        elif item['type'] == 'changed':
             record = item['data']
             if item['caption'] != '':
                 record['file_versions'][0]['caption'] = item['caption']
