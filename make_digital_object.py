@@ -11,6 +11,7 @@
 #    (process_files)
 
 import argparse
+import csv
 import json
 import magic
 import os
@@ -224,7 +225,6 @@ def check_digital_object(uri):
 # write uri.txt by searching for the component ID specified in the directory name and fetching its URI
 def write_uri_txt(component_id, path):
     global AS
-    as_log("Writing uri.txt... ")
     resp = AS.client.get('/repositories/2/search', params={'q': component_id, 'type[]': "archival_object", 'page': "1"})
     if resp.status_code == 200:
         results = json.loads(resp.text)['results']
@@ -241,6 +241,7 @@ def write_uri_txt(component_id, path):
         uri = uris[0]['uri']
         if os.path.exists(path):
             os.remove(path)
+        as_log("Writing uri.txt... ")
         with open(path, 'w') as f:
             f.write(uri)
 
@@ -289,21 +290,40 @@ def as_log(message):
     print(message)
 
 
+def process(path, no_kaltura_id, no_caption):
+    uri = check_uri_txt(path)
+    ref = check_digital_object(uri)
+    process_files(ref, path, no_kaltura_id, no_caption)
+
+
 def main():
     global AS
     AS = ASpace()
     parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
     parser.add_argument('-p', '--path', help="The directory to process")
+    parser.add_argument('-b', '--batch', help="A CSV file containing a list of directories to process in a batch")
     parser.add_argument('--no_kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
     parser.add_argument('--no_caption', help="Do not prompt the user to provide captions", action='store_true')
 
     args = parser.parse_args()
-    path = get_path(args.path)
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
-    uri = check_uri_txt(path)
-    ref = check_digital_object(uri)
-    process_files(ref, path, no_kaltura_id, no_caption)
+    if args.batch:
+        try:
+            with open(args.batch, 'r') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    path = get_path(row[0])
+                    try:
+                        process(path, no_kaltura_id, no_caption)
+                    except DigitalObjectException as e:
+                        print(e.message)
+                        continue
+        except FileNotFoundError as e:
+            print(e)
+    else:
+        path = get_path(args.path)
+        process(path, no_kaltura_id, no_caption)
 
 
 if __name__ == "__main__":
