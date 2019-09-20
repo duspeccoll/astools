@@ -190,7 +190,7 @@ class BrowseButton(tk.Button):
         self.file_path_entry = file_path_entry
 
     def _button_command(self):
-        dirname = filedialog.askdirectory(initialdir=r"C:\Users\alice.tarrant\vbox_shared")
+        dirname = filedialog.askdirectory()
         self.file_path_entry.set(dirname)
 
 
