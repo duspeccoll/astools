@@ -5,7 +5,6 @@ import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 import threading
-from asnake.client import ASnakeClient
 
 item_dict = dict()
 delete_item_dict = dict()
@@ -28,20 +27,21 @@ class MainFrame(ttk.Frame):
         global log_text
         super(MainFrame, self).__init__(master)
         self.item_listbox = ItemListbox(self)
-        self.item_listbox.grid(column=3, row=0, rowspan=3, sticky='NSWE')
+        self.item_listbox.grid(column=3, row=1, rowspan=3, sticky='NSWE')
         self.item_listbox_scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.item_listbox.yview)
-        self.item_listbox_scrollbar.grid(column=4, row=0, rowspan=3, sticky='NSW')
+        self.item_listbox_scrollbar.grid(column=4, row=1, rowspan=3, sticky='NSW')
         self.item_listbox.configure(yscrollcommand=self.item_listbox_scrollbar.set)
         self.file_listbox = FileListbox(self, self.item_listbox)
-        self.file_listbox.grid(column=0, row=0, rowspan=3, sticky='WENS')
+        self.file_listbox.grid(column=0, row=1, rowspan=3, sticky='WENS')
         self.file_listbox_scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.file_listbox.yview)
-        self.file_listbox_scrollbar.grid(column=1, row=0, rowspan=3, sticky='NS')
+        self.file_listbox_scrollbar.grid(column=1, row=1, rowspan=3, sticky='NS')
         self.file_listbox.configure(yscrollcommand=self.file_listbox_scrollbar.set)
 
         self.file_info_frame = FileInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.file_info_frame.grid(column=0, row=3, sticky="W", padx=pad_width)
+        self.file_info_frame.grid(column=0, row=0, sticky="EW", padx=pad_width)
+
         self.item_info_frame = ItemInfoFrame(self, self.file_listbox, self.item_listbox)
-        self.item_info_frame.grid(column=3, row=3, sticky="W")
+        self.item_info_frame.grid(column=3, row=0, sticky="EW")
 
         self.process_buttons_frame = ttk.Frame(self)
         self.process_buttons_frame.grid(column=2, row=1, padx=pad_width)
@@ -65,9 +65,7 @@ class MainFrame(ttk.Frame):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(3, weight=2)
 
-        self.rowconfigure(0, weight=2)
-        self.rowconfigure(4, weight=1)
-        self.rowconfigure(5, weight=2)
+        self.rowconfigure(1, weight=1)
 
         self.log_frame.columnconfigure(0, weight=1)
         self.log_frame.rowconfigure('all', weight=1)
@@ -77,18 +75,20 @@ class FileInfoFrame(ttk.Frame):
     def __init__(self, master, file_listbox, item_listbox):
         super(FileInfoFrame, self).__init__(master)
         self.file_path_entry = FilePathEntry(self)
-        self.file_path_entry.grid(column=0, row=0, columnspan=3)
+        self.file_path_entry.grid(column=0, row=0, columnspan=3, sticky='EW')
         self.add_remove_buttons_frame = ttk.Frame(self)
         self.add_remove_buttons_frame.grid(column=0, row=1, sticky='W')
         self.add_button = AddButton(self.add_remove_buttons_frame, self.file_path_entry, file_listbox, item_listbox)
         self.add_button.grid(column=0, row=0, sticky='WE', padx=2, pady=2)
         self.remove_button = RemoveButton(self.add_remove_buttons_frame, file_listbox, item_listbox)
-        self.remove_button.grid(column=1, row=0, sticky='W')
+        self.remove_button.grid(column=2, row=0, sticky='W')
         self.batch_add_button = BatchAddButton(self.add_remove_buttons_frame, self.file_path_entry,
                                                file_listbox, item_listbox)
-        self.batch_add_button.grid(column=0, row=1, sticky="WE", padx=2)
+        self.batch_add_button.grid(column=1, row=0, sticky="WE", padx=2)
         self.browse_button = BrowseButton(self.file_path_entry, self.file_path_entry)
         self.browse_button.grid(column=1, row=1, padx=pad_width)
+
+        self.columnconfigure(0, weight=1)
 
 
 class ItemInfoFrame(ttk.Frame):
@@ -97,12 +97,16 @@ class ItemInfoFrame(ttk.Frame):
         self.file_listbox = file_listbox
         self.item_listbox = item_listbox
         self.caption_entry = CaptionEntry(self)
-        self.caption_entry.grid(column=0, row=0, sticky='W')
+        self.caption_entry.grid(column=0, row=0, sticky='EW')
         self.kaltura_entry = KalturaIDEntry(self)
-        self.kaltura_entry.grid(column=0, row=1, sticky='W')
-        self.set_caption_button = SetCaptionButton(self.caption_entry, self.caption_entry, self.kaltura_entry,
+        self.kaltura_entry.grid(column=2, row=0, sticky='EW')
+        self.set_caption_button = SetCaptionButton(self, self.caption_entry,
                                                    self.file_listbox, self.item_listbox)
-        self.set_caption_button.grid(column=1, row=1, sticky='S', padx=pad_width)
+        self.set_caption_button.grid(column=1, row=0, sticky='S', padx=pad_width)
+        self.set_kaltura_button = SetKalturaButton(self, self.kaltura_entry, self.file_listbox, self.item_listbox)
+        self.set_kaltura_button.grid(column=3, row=0, sticky='S', padx=pad_width)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(2, weight=1)
         self.columnconfigure('all', pad=pad_width)
         self.rowconfigure('all', pad=pad_width)
 
@@ -113,7 +117,8 @@ class FilePathEntry(ttk.Frame):
         self.label = tk.Label(self, text="File Path")
         self.label.grid(column=0, row=0, sticky="W")
         self.entry = tk.Entry(self, width=30)
-        self.entry.grid(column=0, row=1, sticky="W")
+        self.entry.grid(column=0, row=1, sticky="EW")
+        self.columnconfigure(0, weight=1)
 
     def get(self):
         return self.entry.get()
@@ -129,7 +134,8 @@ class KalturaIDEntry(ttk.Frame):
         self.label = tk.Label(self, text="Kaltura ID")
         self.label.grid(column=0, row=0, sticky='W')
         self.entry = tk.Entry(self)
-        self.entry.grid(column=0, row=1, sticky='W')
+        self.entry.grid(column=0, row=1, sticky='EW')
+        self.columnconfigure(0, weight=1)
 
     def get(self):
         return self.entry.get()
@@ -141,7 +147,8 @@ class CaptionEntry(ttk.Frame):
         self.label = tk.Label(self, text="Caption")
         self.label.grid(column=0, row=0, sticky='W')
         self.entry = tk.Entry(self)
-        self.entry.grid(column=0, row=1, sticky='W')
+        self.entry.grid(column=0, row=1, sticky='EW')
+        self.columnconfigure(0, weight=1)
 
     def get(self):
         return self.entry.get()
@@ -196,12 +203,11 @@ class BrowseButton(tk.Button):
 
 
 class SetCaptionButton(tk.Button):
-    def __init__(self, master, caption_entry, kaltura_entry, file_listbox, item_listbox):
+    def __init__(self, master, caption_entry, file_listbox, item_listbox):
         super(SetCaptionButton, self).__init__(master, text='Set', command=self._button_command)
         self.caption_entry = caption_entry
         self.file_listbox = file_listbox
         self.item_listbox = item_listbox
-        self.kaltura_entry = kaltura_entry
 
     def _button_command(self):
         file_selection = self.file_listbox.selection()
@@ -209,13 +215,31 @@ class SetCaptionButton(tk.Button):
         item_selection = self.item_listbox.selection()
         item_index = int(item_selection[0][1:]) - 1
         item_list = item_dict[file_index]
-        if self.caption_entry.get() != item_list[item_index]['caption'] or \
-                self.kaltura_entry.get() != item_list[item_index]['kaltura']:
+        if self.caption_entry.get() != item_list[item_index]['caption']:
             item_list[item_index]['caption'] = self.caption_entry.get()
-            item_list[item_index]['kaltura'] = self.kaltura_entry.get()
             if item_list[item_index]['type'] == 'old':
                 item_list[item_index]['type'] = 'changed'
         self.caption_entry.entry.delete(0, 'end')
+        display_items(self.file_listbox, self.item_listbox)
+
+
+class SetKalturaButton(tk.Button):
+    def __init__(self, master, kaltura_entry, file_listbox, item_listbox):
+        super(SetKalturaButton, self).__init__(master, text='Set', command=self._button_command)
+        self.kaltura_entry = kaltura_entry
+        self.file_listbox = file_listbox
+        self.item_listbox = item_listbox
+
+    def _button_command(self):
+        file_selection = self.file_listbox.selection()
+        file_index = file_selection[0]
+        item_selection = self.item_listbox.selection()
+        item_index = int(item_selection[0][1:]) - 1
+        item_list = item_dict[file_index]
+        if self.kaltura_entry.get() != item_list[item_index]['kaltura']:
+            item_list[item_index]['kaltura'] = self.kaltura_entry.get()
+            if item_list[item_index]['type'] == 'old':
+                item_list[item_index]['type'] = 'changed'
         self.kaltura_entry.entry.delete(0, 'end')
         display_items(self.file_listbox, self.item_listbox)
 
@@ -339,9 +363,11 @@ class ProcessThread(threading.Thread):
         ask_to_delete_items()
 
         lock_process()
-
-        file_selection = self.file_listbox.selection()[0]
-        process_items(self.file_listbox, file_selection)
+        try:
+            file_selection = self.file_listbox.selection()[0]
+            process_items(self.file_listbox, file_selection)
+        except IndexError:
+            pass
 
         unlock_process()
 
@@ -355,10 +381,12 @@ class ProcessAllThread(threading.Thread):
         ask_to_delete_items()
 
         lock_process()
-
-        files = self.file_listbox.get_children()
-        for f in files:
-            process_items(self.file_listbox, f)
+        try:
+            files = self.file_listbox.get_children()
+            for f in files:
+                process_items(self.file_listbox, f)
+        except IndexError:
+            pass
 
         unlock_process()
 
@@ -369,6 +397,7 @@ class CredentialsWindow(tk.Tk):
         super(CredentialsWindow, self).__init__()
 
         self.title('Credentials')
+        self.iconbitmap('favicon.ico')
 
         self.baseurl_label = ttk.Label(self, text="Base Archivesspace URL")
         self.baseurl_label.grid(column=0, row=0)
@@ -382,7 +411,7 @@ class CredentialsWindow(tk.Tk):
 
         self.password_label = ttk.Label(self, text="Password")
         self.password_label.grid(column=0, row=4)
-        self.password_entry = ttk.Entry(self)
+        self.password_entry = ttk.Entry(self, show="*")
         self.password_entry.grid(column=0, row=5)
 
         self.confirm_button = ttk.Button(text="Confirm", command=self._confirm_button_command)
@@ -416,6 +445,8 @@ class AskDeleteWindow(tk.Tk):
     def __init__(self):
         global root
         super(AskDeleteWindow, self).__init__()
+        self.title('Delete Files?')
+        self.iconbitmap('favicon.ico')
 
         lock_process()
         disable_all_buttons(root)
@@ -481,19 +512,15 @@ def process_items(file_listbox, file_selection):
     for item in item_list:
         if item['type'] == 'new':
             data = item['data']
-            if item['caption'] != '':
-                data['children'][0]['file_versions'][0]['caption'] = item['caption']
-            if item['kaltura'] != '':
-                data['children'][0]['component_id'] = item['kaltura']
+            data['children'][0]['file_versions'][0]['caption'] = item['caption']
+            data['children'][0]['component_id'] = item['kaltura']
             post_json("{}/children".format(item['ref']), data)
         elif item['type'] == 'changed':
-            record = item['data']
-            if item['caption'] != '':
-                record['file_versions'][0]['caption'] = item['caption']
-            if item['kaltura'] != '':
-                record['component_id'] = item['kaltura']
-            record['digital_object'] = {'ref': item['ref']}
-            post_json(item['record_uri'], record)
+            data = item['data']
+            data['file_versions'][0]['caption'] = item['caption']
+            data['component_id'] = item['kaltura']
+            data['digital_object'] = {'ref': item['ref']}
+            post_json(item['record_uri'], data)
 
     file_listbox.delete(file_selection)
 
@@ -555,7 +582,10 @@ def find_items(ref, path, tree_id):
                         caption = ''
                         if 'caption' in record['file_versions'][0]:
                             caption = record['file_versions'][0]['caption']
-                        item_dict[tree_id].append({'child': file, 'caption': caption, 'kaltura': '',
+                        kaltura_id = ''
+                        if 'component_id' in record:
+                            kaltura_id = record['component_id']
+                        item_dict[tree_id].append({'child': file, 'caption': caption, 'kaltura': kaltura_id,
                                                    'data': record, 'type': item_type, 'ref': ref,
                                                    'record_uri': child['record_uri']})
             else:
