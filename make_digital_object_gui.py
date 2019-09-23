@@ -435,9 +435,9 @@ class AskDeleteWindow(tk.Tk):
     def _yes_button_command(self, _=None):
         global root
         for folder in delete_item_dict.values():
-            for uri in folder:
-                r = make_digital_object.AS.delete(uri)
-                print('deleted')
+            for uri, title in folder:
+                make_digital_object.AS.client.delete(uri)
+                as_log("Deleted {} ({}).".format(title, uri))
         delete_item_dict.clear()
         unlock_process()
         disable_all_buttons(root, True)
@@ -580,7 +580,7 @@ def find_items(ref, path, tree_id):
         if child['title'] not in files:
             if tree_id not in delete_item_dict:
                 delete_item_dict[tree_id] = list()
-            delete_item_dict[tree_id].append(child['record_uri'])
+            delete_item_dict[tree_id].append((child['record_uri'], child['title']))
 
 
 def ask_to_delete_items():

@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
 # What this script does:
-# 1. logs into the ArchivesSpace backend via the ArchivesSnake library (you will need to configure that before you run the script)
+# 1. logs into the ArchivesSpace backend via the ArchivesSnake library (you will need to configure that before you
+# run the script)
 # 2. accepts a digital object package constructed according to the Digital Repository ingest specification as input
 # 3. checks to see if uri.txt exists and generates it if it does not
 #    (check_uri_txt)
-# 4. checks to see if a digital object has been attached to the item record matching the provided component ID, and creates it if it does not
+# 4. checks to see if a digital object has been attached to the item record matching the provided component ID,
+# and creates it if it does not
 #    (check_digital_object)
-# 5. processes each file and attaches a digital object component to the digital object containing that file's name, format, and size in bytes
+# 5. processes each file and attaches a digital object component to the digital object containing that file's name,
+# format, and size in bytes
 #    (process_files)
 
 import argparse
