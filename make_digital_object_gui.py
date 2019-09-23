@@ -8,6 +8,7 @@ import threading
 from asnake.client import ASnakeClient
 
 item_dict = dict()
+delete_item_dict = dict()
 pad_width = 10
 try:
     mag = magic.Magic(mime=True, magic_file=r"magic.mgc")
@@ -335,6 +336,8 @@ class ProcessThread(threading.Thread):
         self.file_listbox = file_listbox
 
     def run(self):
+        #ask_to_delete_items()
+
         lock_process()
 
         file_selection = self.file_listbox.selection()[0]
@@ -349,6 +352,8 @@ class ProcessAllThread(threading.Thread):
         self.file_listbox = file_listbox
 
     def run(self):
+        #ask_to_delete_items()
+
         lock_process()
 
         files = self.file_listbox.get_children()
@@ -387,7 +392,7 @@ class CredentialsWindow(tk.Tk):
 
         self.mainloop()
 
-    def _confirm_button_command(self, _):
+    def _confirm_button_command(self, _=None):
         global root
         try:
             make_digital_object.AS = ASpace(baseurl=self.baseurl_entry.get(),
@@ -405,6 +410,44 @@ class CredentialsWindow(tk.Tk):
             self.baseurl_entry.delete(0, 'end')
             self.username_entry.delete(0, 'end')
             self.password_entry.delete(0, 'end')
+
+
+class AskDeleteWindow(tk.Tk):
+    def __init__(self):
+        global root
+        super(AskDeleteWindow, self).__init__()
+
+        lock_process()
+        disable_all_buttons(root)
+
+        self.label = ttk.Label(self, text="There are digital objects in Archivesspace that don't exist in the "
+                                          "processed folder(s).  Would you like to delete those records?")
+        self.label.grid(column=0, row=0, columnspan=2)
+
+        self.yes_button = ttk.Button(self, text="Yes", command=self._yes_button_command)
+        self.yes_button.grid(column=0, row=1)
+
+        self.no_button = ttk.Button(self, text="No", command=self._no_button_command)
+        self.no_button.grid(column=1, row=1)
+
+        self.mainloop()
+
+    def _yes_button_command(self, _=None):
+        global root
+        for folder in delete_item_dict.values():
+            for uri in folder:
+                r = make_digital_object.AS.delete(uri)
+                print('deleted')
+        delete_item_dict.clear()
+        unlock_process()
+        disable_all_buttons(root, True)
+        self.destroy()
+
+    def _no_button_command(self, _=None):
+        global root
+        unlock_process()
+        disable_all_buttons(root, True)
+        self.destroy()
 
 
 def add_file(file_path, file_listbox, item_listbox, file_path_entry):
@@ -526,6 +569,17 @@ def find_items(ref, path, tree_id):
                 }
                 item_dict[tree_id].append({'child': file, 'caption': '', 'kaltura': '',
                                            'data': data, 'type': 'new', 'ref': ref})
+
+    for child in tree['children']:
+        if child['title'] not in files:
+            if tree_id not in delete_item_dict:
+                delete_item_dict[tree_id] = list()
+            delete_item_dict[tree_id].append(child['record_uri'])
+
+
+def ask_to_delete_items():
+    if len(delete_item_dict) > 0:
+        AskDeleteWindow()
 
 
 def magic_from_file(path_to_file):
