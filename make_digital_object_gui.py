@@ -536,13 +536,13 @@ def find_items(ref, path, tree_id):
                             version = record['file_versions'][0]
                             if 'file_uri' not in version or version['file_uri'] != file:
                                 record['file_versions'][0]['file_uri'] = file
-                                item_type = 'new'
+                                item_type = 'changed'
                             if 'file_format_name' not in version or version['file_format_name'] != file_format_name:
                                 record['file_versions'][0]['file_format_name'] = file_format_name
-                                item_type = 'new'
+                                item_type = 'changed'
                             if 'file_size_bytes' not in version or version['file_size_bytes'] != file_size_bytes:
                                 record['file_versions'][0]['file_size_bytes'] = file_size_bytes
-                                item_type = 'new'
+                                item_type = 'changed'
                         else:
                             record['file_versions'].append({
                                 'jsonmodel_type': "file_version",
