@@ -336,7 +336,7 @@ class ProcessThread(threading.Thread):
         self.file_listbox = file_listbox
 
     def run(self):
-        #ask_to_delete_items()
+        ask_to_delete_items()
 
         lock_process()
 
@@ -352,7 +352,7 @@ class ProcessAllThread(threading.Thread):
         self.file_listbox = file_listbox
 
     def run(self):
-        #ask_to_delete_items()
+        ask_to_delete_items()
 
         lock_process()
 
@@ -530,14 +530,19 @@ def find_items(ref, path, tree_id):
                     if child['title'] == file:
                         record = get_json(child['record_uri'])
 
+                        item_type = 'old'
+
                         if record['file_versions']:
                             version = record['file_versions'][0]
                             if 'file_uri' not in version or version['file_uri'] != file:
                                 record['file_versions'][0]['file_uri'] = file
+                                item_type = 'new'
                             if 'file_format_name' not in version or version['file_format_name'] != file_format_name:
                                 record['file_versions'][0]['file_format_name'] = file_format_name
+                                item_type = 'new'
                             if 'file_size_bytes' not in version or version['file_size_bytes'] != file_size_bytes:
                                 record['file_versions'][0]['file_size_bytes'] = file_size_bytes
+                                item_type = 'new'
                         else:
                             record['file_versions'].append({
                                 'jsonmodel_type': "file_version",
@@ -546,11 +551,12 @@ def find_items(ref, path, tree_id):
                                 'file_size_bytes': file_size_bytes,
                                 'is_representative': True,
                             })
+                            item_type = 'changed'
                         caption = ''
                         if 'caption' in record['file_versions'][0]:
                             caption = record['file_versions'][0]['caption']
                         item_dict[tree_id].append({'child': file, 'caption': caption, 'kaltura': '',
-                                                   'data': record, 'type': 'old', 'ref': ref,
+                                                   'data': record, 'type': item_type, 'ref': ref,
                                                    'record_uri': child['record_uri']})
             else:
                 data = {
