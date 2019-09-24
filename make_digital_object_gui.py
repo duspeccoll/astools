@@ -412,33 +412,41 @@ class CredentialsWindow(tk.Tk):
         global root
         super(CredentialsWindow, self).__init__()
 
+        self.minsize(width=200, height=200)
+
+        self.frame = tk.Frame()
+        self.frame.grid(padx=10, pady=10, sticky='EW')
+
         self.title('Credentials')
         self.iconbitmap('favicon.ico')
+        self.configure(width=200)
 
-        self.baseurl_label = ttk.Label(self, text="Base Archivesspace URL")
+        self.baseurl_label = ttk.Label(self.frame, text="Base Archivesspace URL")
         self.baseurl_label.grid(column=0, row=0)
-        self.baseurl_entry = ttk.Entry(self)
-        self.baseurl_entry.grid(column=0, row=1)
+        self.baseurl_entry = ttk.Entry(self.frame)
+        self.baseurl_entry.grid(column=0, row=1, sticky='EW')
         self.baseurl_entry.insert(0, default_url)
 
-        self.username_label = ttk.Label(self, text="Username")
+        self.username_label = ttk.Label(self.frame, text="Username")
         self.username_label.grid(column=0, row=2)
-        self.username_entry = ttk.Entry(self)
-        self.username_entry.grid(column=0, row=3)
+        self.username_entry = ttk.Entry(self.frame)
+        self.username_entry.grid(column=0, row=3, sticky='EW')
 
-        self.password_label = ttk.Label(self, text="Password")
+        self.password_label = ttk.Label(self.frame, text="Password")
         self.password_label.grid(column=0, row=4)
-        self.password_entry = ttk.Entry(self, show="*")
-        self.password_entry.grid(column=0, row=5)
+        self.password_entry = ttk.Entry(self.frame, show="*")
+        self.password_entry.grid(column=0, row=5, sticky='EW')
 
         self.confirm_button = ttk.Button(text="Confirm", command=self._confirm_button_command)
         self.confirm_button.grid(column=0, row=7)
 
-        self.invalid_login = ttk.Label(self, foreground='red')
+        self.invalid_login = ttk.Label(self.frame, foreground='red')
+        self.invalid_login.grid(column=0, row=6)
 
         self.bind('<Return>', self._confirm_button_command)
 
-        self.columnconfigure('all', pad=pad_width)
+        self.columnconfigure(0, weight=1)
+        self.frame.columnconfigure(0, weight=1)
 
         self.mainloop()
 
@@ -460,12 +468,10 @@ class CredentialsWindow(tk.Tk):
             self.username_entry.delete(0, 'end')
             self.password_entry.delete(0, 'end')
             self.invalid_login.configure(text="Incorrect username/password.")
-            self.invalid_login.grid(column=0, row=6)
 
         except (MissingSchema, InvalidSchema):
             self.baseurl_entry.delete(0, 'end')
             self.invalid_login.configure(text="Incorrect URL.")
-            self.invalid_login.grid(column=0, row=6)
 
 
 class AskDeleteWindow(tk.Tk):
