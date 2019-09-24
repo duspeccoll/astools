@@ -5,6 +5,7 @@ import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 import threading
+from requests.exceptions import  MissingSchema
 
 item_dict = dict()
 delete_item_dict = dict()
@@ -14,7 +15,6 @@ try:
     pymagic_flag = True
 except magic.MagicException:
     pymagic_flag = False
-    print("default loaded")
 
 ignored_file_extensions = ('db', 'xml', '.DS_Store')
 log_text = None
@@ -415,9 +415,13 @@ class CredentialsWindow(tk.Tk):
         self.password_entry.grid(column=0, row=5)
 
         self.confirm_button = ttk.Button(text="Confirm", command=self._confirm_button_command)
-        self.confirm_button.grid(column=0, row=6)
+        self.confirm_button.grid(column=0, row=7)
+
+        self.invalid_login = ttk.Label(self, foreground='red')
 
         self.bind('<Return>', self._confirm_button_command)
+
+        self.columnconfigure('all', pad=pad_width)
 
         self.mainloop()
 
@@ -439,6 +443,15 @@ class CredentialsWindow(tk.Tk):
             self.baseurl_entry.delete(0, 'end')
             self.username_entry.delete(0, 'end')
             self.password_entry.delete(0, 'end')
+            self.invalid_login.configure(text="Incorrect username/password.")
+            self.invalid_login.grid(column=0, row=6)
+
+        except MissingSchema:
+            self.baseurl_entry.delete(0, 'end')
+            self.username_entry.delete(0, 'end')
+            self.password_entry.delete(0, 'end')
+            self.invalid_login.configure(text="Incorrect URL.")
+            self.invalid_login.grid(column=0, row=6)
 
 
 class AskDeleteWindow(tk.Tk):
@@ -685,12 +698,13 @@ def main():
 
     check_credentials()
 
-    root = tk.Tk()
-    root.title("Make Digital Object Utility")
-    root.iconbitmap('favicon.ico')
-    setup_gui(root)
+    if make_digital_object.AS is not None:
+        root = tk.Tk()
+        root.title("Make Digital Object Utility")
+        root.iconbitmap('favicon.ico')
+        setup_gui(root)
 
-    root.mainloop()
+        root.mainloop()
 
 
 if __name__ == "__main__":
