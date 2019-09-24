@@ -29,13 +29,11 @@ try:
         default_url = config.get('DEFAULT', 'url')
 except FileNotFoundError:
     default_url = ""
-    as_log('config.ini not found.')
     config['DEFAULT'] = {"url": ""}
     with open('config.ini', 'w') as f:
         config.write(f)
 except KeyError:
     default_url = ""
-    as_log('url field missing in config.ini')
 
 
 class MainFrame(ttk.Frame):
