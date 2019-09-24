@@ -22,13 +22,17 @@ log_text = None
 root = None
 process_lock = threading.Lock()
 
+config = configparser.ConfigParser()
 try:
-    config = configparser.ConfigParser()
-    config.read('config.ini')
-    default_url = config["DEFAULT"]["url"]
+    with open('config.ini') as f:
+        config.read(f)
+        default_url = config["DEFAULT"]["url"]
 except FileNotFoundError:
     default_url = ""
     as_log('config.ini not found.')
+    config['DEFAULT'] = {"url": ""}
+    with open('config.ini', 'w') as f:
+        config.write(f)
 except KeyError:
     default_url = ""
     as_log('')
