@@ -25,8 +25,8 @@ process_lock = threading.Lock()
 config = configparser.ConfigParser()
 try:
     with open('config.ini') as f:
-        config.read(f)
-        default_url = config["DEFAULT"]["url"]
+        config.read_file(f)
+        default_url = config.get('DEFAULT', 'url')
 except FileNotFoundError:
     default_url = ""
     as_log('config.ini not found.')
@@ -35,7 +35,7 @@ except FileNotFoundError:
         config.write(f)
 except KeyError:
     default_url = ""
-    as_log('')
+    as_log('url field missing in config.ini')
 
 
 class MainFrame(ttk.Frame):
