@@ -5,7 +5,8 @@ import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 import threading
-from requests.exceptions import  MissingSchema
+from requests.exceptions import MissingSchema, InvalidSchema
+import configparser
 
 item_dict = dict()
 delete_item_dict = dict()
@@ -20,6 +21,17 @@ ignored_file_extensions = ('db', 'xml', '.DS_Store')
 log_text = None
 root = None
 process_lock = threading.Lock()
+
+try:
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    default_url = config["DEFAULT"]["url"]
+except FileNotFoundError:
+    default_url = ""
+    as_log('config.ini not found.')
+except KeyError:
+    default_url = ""
+    as_log('')
 
 
 class MainFrame(ttk.Frame):
@@ -403,6 +415,7 @@ class CredentialsWindow(tk.Tk):
         self.baseurl_label.grid(column=0, row=0)
         self.baseurl_entry = ttk.Entry(self)
         self.baseurl_entry.grid(column=0, row=1)
+        self.baseurl_entry.insert(0, default_url)
 
         self.username_label = ttk.Label(self, text="Username")
         self.username_label.grid(column=0, row=2)
@@ -440,16 +453,13 @@ class CredentialsWindow(tk.Tk):
                 self.destroy()
 
         except ASnakeAuthError:
-            self.baseurl_entry.delete(0, 'end')
             self.username_entry.delete(0, 'end')
             self.password_entry.delete(0, 'end')
             self.invalid_login.configure(text="Incorrect username/password.")
             self.invalid_login.grid(column=0, row=6)
 
-        except MissingSchema:
+        except (MissingSchema, InvalidSchema):
             self.baseurl_entry.delete(0, 'end')
-            self.username_entry.delete(0, 'end')
-            self.password_entry.delete(0, 'end')
             self.invalid_login.configure(text="Incorrect URL.")
             self.invalid_login.grid(column=0, row=6)
 
