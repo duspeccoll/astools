@@ -435,11 +435,18 @@ class CredentialsWindow(tk.Tk):
         self.password_entry = ttk.Entry(self.frame, show="*")
         self.password_entry.grid(column=0, row=5, sticky='EW')
 
+        self.save_credentials_flag = tk.BooleanVar(self)
+        self.save_credentials_flag.set(False)
+        self.save_credentials = ttk.Checkbutton(self.frame, text='Save credentials?',
+                                                variable=self.save_credentials_flag, onvalue=True, offvalue=False)
+        self.save_credentials.grid(column=0, row=6)
+        self.save_credentials.state(['selected'])
+
         self.confirm_button = ttk.Button(text="Confirm", command=self._confirm_button_command)
-        self.confirm_button.grid(column=0, row=7)
+        self.confirm_button.grid(column=0, row=8)
 
         self.invalid_login = ttk.Label(self.frame, foreground='red')
-        self.invalid_login.grid(column=0, row=6)
+        self.invalid_login.grid(column=0, row=7)
 
         self.bind('<Return>', self._confirm_button_command)
 
@@ -454,13 +461,13 @@ class CredentialsWindow(tk.Tk):
             make_digital_object.AS = ASpace(baseurl=self.baseurl_entry.get(),
                                             username=self.username_entry.get(),
                                             password=self.password_entry.get())
-
-            with open('credentials.json', mode='w') as credentials:
-                data = {'baseurl': self.baseurl_entry.get(),
-                        'username': self.username_entry.get(),
-                        'password': self.password_entry.get()}
-                json.dump(data, credentials)
-                self.destroy()
+            if self.save_credentials_flag.get():
+                with open('credentials.json', mode='w') as credentials:
+                    data = {'baseurl': self.baseurl_entry.get(),
+                            'username': self.username_entry.get(),
+                            'password': self.password_entry.get()}
+                    json.dump(data, credentials)
+            self.destroy()
 
         except ASnakeAuthError:
             self.username_entry.delete(0, 'end')
