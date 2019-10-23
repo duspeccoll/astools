@@ -406,7 +406,7 @@ class ProcessAllThread(threading.Thread):
 
 
 class CredentialsWindow(tk.Tk):
-    def __init__(self):
+    def __init__(self, url='', username='', password=''):
         global root
         super(CredentialsWindow, self).__init__()
 
@@ -419,27 +419,38 @@ class CredentialsWindow(tk.Tk):
         self.iconbitmap('favicon.ico')
         self.configure(width=200)
 
+        if url == '':
+            url = default_url
+
         self.baseurl_label = ttk.Label(self.frame, text="Base Archivesspace URL")
         self.baseurl_label.grid(column=0, row=0)
         self.baseurl_entry = ttk.Entry(self.frame)
         self.baseurl_entry.grid(column=0, row=1, sticky='EW')
-        self.baseurl_entry.insert(0, default_url)
+        self.baseurl_entry.insert(0, url)
 
         self.username_label = ttk.Label(self.frame, text="Username")
         self.username_label.grid(column=0, row=2)
         self.username_entry = ttk.Entry(self.frame)
         self.username_entry.grid(column=0, row=3, sticky='EW')
+        self.username_entry.insert(0, username)
 
         self.password_label = ttk.Label(self.frame, text="Password")
         self.password_label.grid(column=0, row=4)
         self.password_entry = ttk.Entry(self.frame, show="*")
         self.password_entry.grid(column=0, row=5, sticky='EW')
+        self.password_entry.insert(0, password)
+
+        self.save_credentials_flag = tk.BooleanVar(self, False)
+        self.save_credentials = ttk.Checkbutton(self.frame, text='Save credentials?',
+                                                variable=self.save_credentials_flag, onvalue=True, offvalue=False)
+
+        self.save_credentials.grid(column=0, row=6)
 
         self.confirm_button = ttk.Button(text="Confirm", command=self._confirm_button_command)
-        self.confirm_button.grid(column=0, row=7)
+        self.confirm_button.grid(column=0, row=8)
 
         self.invalid_login = ttk.Label(self.frame, foreground='red')
-        self.invalid_login.grid(column=0, row=6)
+        self.invalid_login.grid(column=0, row=7)
 
         self.bind('<Return>', self._confirm_button_command)
 
@@ -454,13 +465,18 @@ class CredentialsWindow(tk.Tk):
             make_digital_object.AS = ASpace(baseurl=self.baseurl_entry.get(),
                                             username=self.username_entry.get(),
                                             password=self.password_entry.get())
-
-            with open('credentials.json', mode='w') as credentials:
-                data = {'baseurl': self.baseurl_entry.get(),
-                        'username': self.username_entry.get(),
-                        'password': self.password_entry.get()}
-                json.dump(data, credentials)
-                self.destroy()
+            if self.save_credentials_flag.get():
+                with open('credentials.json', mode='w') as credentials:
+                    data = {'baseurl': self.baseurl_entry.get(),
+                            'username': self.username_entry.get(),
+                            'password': self.password_entry.get()}
+                    json.dump(data, credentials)
+            else:
+                try:
+                    os.remove('credentials.json')
+                except FileNotFoundError:
+                    pass
+            self.destroy()
 
         except ASnakeAuthError:
             self.username_entry.delete(0, 'end')
@@ -704,9 +720,9 @@ def check_credentials():
     try:
         with open('credentials.json') as credentials:
             data = json.load(credentials)
-            make_digital_object.AS = ASpace(baseurl=data['baseurl'],
-                                            username=data['username'],
-                                            password=data['password'])
+        CredentialsWindow(url=data['baseurl'],
+                          username=data['username'],
+                          password=data['password'])
     except FileNotFoundError:
         CredentialsWindow()
 
