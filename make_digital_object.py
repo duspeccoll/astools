@@ -77,7 +77,11 @@ def process_files(ref, path, no_kaltura_id, no_caption):
         for file in files:
             path_to_file = os.path.join(path, file)
             file_format_name = magic.from_file(path_to_file, mime=True).split("/")[-1]
-            file_size_bytes = os.path.getsize(path_to_file)
+            # ignore file size if it won't fit in an int(11) to bypass mysql db constraints
+            if os.path.getsize(path_to_file) < 2147483647:
+                file_size_bytes = os.path.getsize(path_to_file)
+            else:
+                file_size_bytes = ''
 
             file_format_name = magic_to_as(file_format_name)
 

@@ -593,7 +593,11 @@ def find_items(ref, path, tree_id):
             as_log("\nProcessing {}... ".format(file))
             file_format_name = magic_to_as(file_format_name)
 
-            file_size_bytes = os.path.getsize(path_to_file)
+            # ignore file size if it won't fit in an int(11) to bypass mysql db constraints
+            if os.path.getsize(path_to_file) < 2147483647:
+                file_size_bytes = os.path.getsize(path_to_file)
+            else:
+                file_size_bytes = ''
 
             tree_files = [child for child in tree['children'] if child['title'] == file]
 
