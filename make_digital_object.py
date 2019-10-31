@@ -89,56 +89,54 @@ def process_files(ref, path, no_kaltura_id, no_caption):
             if tree_files:
                 print("Checking for file-level metadata updates... ")
                 for child in tree['children']:
-                    # is this if statement redundunt considering the above list comprehension? -Alice
-                    if child['title'] == file:
-                        record = get_json(child['record_uri'])
-                        updates = False
+                    record = get_json(child['record_uri'])
+                    updates = False
 
-                        if 'component_id' not in record:
-                            if not no_kaltura_id:
-                                kaltura_id = input("> Kaltura ID (leave blank for none): ")
-                                if kaltura_id:
-                                    record['component_id'] = kaltura_id
-                                    updates = True
+                    if 'component_id' not in record:
+                        if not no_kaltura_id:
+                            kaltura_id = input("> Kaltura ID (leave blank for none): ")
+                            if kaltura_id:
+                                record['component_id'] = kaltura_id
+                                updates = True
 
-                        if record['file_versions']:
-                            version = record['file_versions'][0]
-                            if 'file_uri' not in version or version['file_uri'] != file:
-                                record['file_versions'][0]['file_uri'] = file
-                                updates = True
-                            if 'file_format_name' not in version or version['file_format_name'] != file_format_name:
-                                record['file_versions'][0]['file_format_name'] = file_format_name
-                                updates = True
-                            if 'file_size_bytes' not in version or version['file_size_bytes'] != file_size_bytes:
-                                record['file_versions'][0]['file_size_bytes'] = file_size_bytes
-                                updates = True
-                        else:
-                            record['file_versions'].append({
-                                'jsonmodel_type': "file_version",
-                                'file_uri': file,
-                                'file_format_name': file_format_name,
-                                'file_size_bytes': file_size_bytes,
-                                'is_representative': True,
-                            })
+                    if record['file_versions']:
+                        version = record['file_versions'][0]
+                        if 'file_uri' not in version or version['file_uri'] != file:
+                            record['file_versions'][0]['file_uri'] = file
                             updates = True
+                        if 'file_format_name' not in version or version['file_format_name'] != file_format_name:
+                            record['file_versions'][0]['file_format_name'] = file_format_name
+                            updates = True
+                        if 'file_size_bytes' not in version or version['file_size_bytes'] != file_size_bytes:
+                            record['file_versions'][0]['file_size_bytes'] = file_size_bytes
+                            updates = True
+                    else:
+                        record['file_versions'].append({
+                            'jsonmodel_type': "file_version",
+                            'file_uri': file,
+                            'file_format_name': file_format_name,
+                            'file_size_bytes': file_size_bytes,
+                            'is_representative': True,
+                        })
+                        updates = True
 
-                        if not no_caption:
-                            caption = input("> Caption (leave blank for none): ")
-                            if caption:
-                                if 'caption' in record['file_versions'][0]:
-                                    if record['file_versions'][0]['caption'] != caption:
-                                        record['file_versions'][0]['caption'] = caption
-                                        updates = True
-                                else:
+                    if not no_caption:
+                        caption = input("> Caption (leave blank for none): ")
+                        if caption:
+                            if 'caption' in record['file_versions'][0]:
+                                if record['file_versions'][0]['caption'] != caption:
                                     record['file_versions'][0]['caption'] = caption
                                     updates = True
+                            else:
+                                record['file_versions'][0]['caption'] = caption
+                                updates = True
 
-                        if updates:
-                            print("Updating {}... ".format(file))
-                            record['digital_object'] = {'ref': ref}
-                            post_json(child['record_uri'], record)
-                        else:
-                            print("No updates to make")
+                    if updates:
+                        print("Updating {}... ".format(file))
+                        record['digital_object'] = {'ref': ref}
+                        post_json(child['record_uri'], record)
+                    else:
+                        print("No updates to make")
             else:
                 print("Adding file-level metadata to ArchivesSpace... ")
                 data = {
