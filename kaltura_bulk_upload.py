@@ -19,6 +19,7 @@ from asnake.aspace import ASpace
 
 ap = argparse.ArgumentParser(description='Add or update ArchivesSpace metadata properties from CSV input')
 ap.add_argument('-f', '--file', help='The CSV file containing the metadata to add')
+ap.add_argument('-o', '--output', help='The name of the output file to create', required=False)
 args = ap.parse_args()
 
 AS = ASpace()
@@ -30,6 +31,10 @@ attr_qname = etree.QName("http://www.w3.org/2001/XMLSchema-instance", "noNamespa
 if args.file:
     if os.path.exists(args.file):
         thumbnail = input("Thumbnail URL (leave blank for none): ")
+        if args.output:
+            output = args.output
+        else:
+            output = input("Output file: ")
         root = etree.Element("mrss", {attr_qname: "ingestion.xsd"}, nsmap=nsmap)
         channel = etree.SubElement(root, "channel")
         with open(args.file, 'r') as uris:
@@ -50,9 +55,9 @@ if args.file:
                     error = json.loads(r.text)['error']
                     print("Error: {}: {}".format(error, row[0]))
         kxml = etree.ElementTree(root)
-        with open('kaltura.xml', 'w') as f:
+        with open(output, 'w') as f:
             f.write(etree.tostring(kxml, encoding="utf-8", xml_declaration=True, pretty_print=True).decode("utf-8"))
-            print("Bulk upload file written to kaltura.xml")
+            print("Bulk upload file written to {}".format(output))
     else:
         print("File not found: {}".format(args.file))
 else:
