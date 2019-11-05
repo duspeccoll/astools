@@ -44,13 +44,17 @@ if args.file:
                 r = AS.client.get("{}/kaltura.xml".format(row[0]))
                 if r.status_code == 200:
                     xml = etree.fromstring(r.text.encode('utf-8'))
-                    item = xml.find("channel/item")
-                    if thumbnail:
-                        tns = etree.Element("thumbnails")
-                        tn = etree.SubElement(tns, "thumbnail", attrib={'isDefault': 'true'})
-                        url = etree.SubElement(tn, "urlContentResource", attrib={'url': thumbnail})
-                        item.find("contentAssets").addnext(tns)
-                    channel.append(item)
+                    items = xml.xpath("channel/item")
+                    if len(items) > 0:
+                        for item in items:
+                            if thumbnail:
+                                tns = etree.Element("thumbnails")
+                                tn = etree.SubElement(tns, "thumbnail", attrib={'isDefault': 'true'})
+                                url = etree.SubElement(tn, "urlContentResource", attrib={'url': thumbnail})
+                                item.find("contentAssets").addnext(tns)
+                            channel.append(item)
+                    else:
+                        print("Error: No files found: {}".format(row[0]))
                 else:
                     error = json.loads(r.text)['error']
                     print("Error: {}: {}".format(error, row[0]))
