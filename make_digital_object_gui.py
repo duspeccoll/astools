@@ -406,7 +406,7 @@ class ProcessAllThread(threading.Thread):
 
 
 class CredentialsWindow(tk.Tk):
-    def __init__(self, url='', username='', password=''):
+    def __init__(self, url='', username='', password='', save_credentials=False):
         global root
         super(CredentialsWindow, self).__init__()
 
@@ -440,7 +440,7 @@ class CredentialsWindow(tk.Tk):
         self.password_entry.grid(column=0, row=5, sticky='EW')
         self.password_entry.insert(0, password)
 
-        self.save_credentials_flag = tk.BooleanVar(self, False)
+        self.save_credentials_flag = tk.BooleanVar(self, save_credentials)
         self.save_credentials = ttk.Checkbutton(self.frame, text='Save credentials?',
                                                 variable=self.save_credentials_flag, onvalue=True, offvalue=False)
 
@@ -724,7 +724,8 @@ def check_credentials():
             data = json.load(credentials)
         CredentialsWindow(url=data['baseurl'],
                           username=data['username'],
-                          password=data['password'])
+                          password=data['password'],
+                          save_credentials=True)
     except FileNotFoundError:
         CredentialsWindow()
 
