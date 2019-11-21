@@ -405,14 +405,14 @@ class ProcessAllThread(threading.Thread):
         unlock_process()
 
 
-class CredentialsWindow(tk.Tk):
-    def __init__(self, url='', username='', password='', save_credentials=False):
-        global root
-        super(CredentialsWindow, self).__init__()
+class CredentialsWindow(tk.Toplevel):
+    def __init__(self, master, url='', username='', password='', save_credentials=False):
+        super(CredentialsWindow, self).__init__(master)
+        self.transient(master)
 
         self.minsize(width=200, height=200)
 
-        self.frame = tk.Frame()
+        self.frame = tk.Frame(self)
         self.frame.grid(padx=10, pady=10, sticky='EW')
 
         self.title('Credentials')
@@ -446,7 +446,7 @@ class CredentialsWindow(tk.Tk):
 
         self.save_credentials.grid(column=0, row=6)
 
-        self.confirm_button = ttk.Button(text="Confirm", command=self._confirm_button_command)
+        self.confirm_button = ttk.Button(self.frame, text="Confirm", command=self._confirm_button_command)
         self.confirm_button.grid(column=0, row=8)
 
         self.invalid_login = ttk.Label(self.frame, foreground='red')
@@ -456,8 +456,6 @@ class CredentialsWindow(tk.Tk):
 
         self.columnconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
-
-        self.mainloop()
 
     def _confirm_button_command(self, _=None):
         global root
@@ -718,29 +716,33 @@ def unlock_process():
     disable_all_buttons(root, True)
 
 
-def check_credentials():
+def check_credentials(parent):
     try:
         with open('credentials.json') as credentials:
             data = json.load(credentials)
-        CredentialsWindow(url=data['baseurl'],
-                          username=data['username'],
-                          password=data['password'],
-                          save_credentials=True)
+        w = CredentialsWindow(parent,
+                              url=data['baseurl'],
+                              username=data['username'],
+                              password=data['password'],
+                              save_credentials=True)
+
     except FileNotFoundError:
-        CredentialsWindow()
+        w = CredentialsWindow(parent)
+    return w
 
 
 def main():
     global root
 
-    check_credentials()
+    root = tk.Tk()
+    root.title("Make Digital Object Utility")
+    root.iconbitmap('favicon.ico')
+
+    c = check_credentials(root)
+    root.wait_window(c)
+    setup_gui(root)
 
     if make_digital_object.AS is not None:
-        root = tk.Tk()
-        root.title("Make Digital Object Utility")
-        root.iconbitmap('favicon.ico')
-        setup_gui(root)
-
         root.mainloop()
 
 
