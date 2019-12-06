@@ -562,7 +562,8 @@ def process_items(file_listbox, file_selection):
             post_json("{}/children".format(item['ref']), data)
         elif item['type'] == 'changed':
             data = item['data']
-            data['file_versions'][0]['caption'] = item['caption']
+            version_index = item['version_index']
+            data['file_versions'][version_index]['caption'] = item['caption']
             data['component_id'] = item['kaltura']
             data['digital_object'] = {'ref': item['ref']}
             post_json(item['record_uri'], data)
@@ -606,8 +607,20 @@ def find_items(ref, path, tree_id):
 
                     item_type = 'old'
 
+                    version_index = 0
                     if record['file_versions']:
+                        master_use_statments = {"Audio-Master", "Video-Master"}
                         version = record['file_versions'][0]
+                        for i in range(len(record['file_versions'])):
+                            try:
+                                v = record['file_versions'][i]["use_statement"]
+                            except KeyError:
+                                pass
+                            else:
+                                if v in master_use_statments:
+                                    version = v
+                                    version_index = i
+                                    break
                         if 'file_uri' not in version or version['file_uri'] != file:
                             record['file_versions'][0]['file_uri'] = file
                             item_type = 'changed'
@@ -628,13 +641,13 @@ def find_items(ref, path, tree_id):
                         item_type = 'changed'
                     caption = ''
                     if 'caption' in record['file_versions'][0]:
-                        caption = record['file_versions'][0]['caption']
+                        caption = record['file_versions'][version_index]['caption']
                     kaltura_id = ''
                     if 'component_id' in record:
                         kaltura_id = record['component_id']
                     item_dict[tree_id].append({'child': file, 'caption': caption, 'kaltura': kaltura_id,
                                                'data': record, 'type': item_type, 'ref': ref,
-                                               'record_uri': child['record_uri']})
+                                               'record_uri': child['record_uri'], 'version_index': version_index})
             else:
                 data = {
                     'jsonmodel_type': "digital_record_children",
@@ -693,8 +706,9 @@ def setup_gui(toplevel):
 
 
 def disable_all_buttons(widget, enable=False):
+    disable_set = {"Button", "Entry"}
     for c in widget.winfo_children():
-        if c.winfo_class() == "Button":
+        if c.winfo_class() in disable_set:
             if enable:
                 c.configure(state='normal')
             else:
@@ -738,9 +752,12 @@ def main():
     root.title("Make Digital Object Utility")
     root.iconbitmap('favicon.ico')
 
+    setup_gui(root)
+    disable_all_buttons(root)
+
     c = check_credentials(root)
     root.wait_window(c)
-    setup_gui(root)
+    disable_all_buttons(root, True)
 
     if make_digital_object.AS is not None:
         root.mainloop()
