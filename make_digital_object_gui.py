@@ -334,7 +334,7 @@ class LogText(tk.Text):
 
 class AddThread(threading.Thread):
     def __init__(self, file_path_entry, file_listbox, item_listbox):
-        super(AddThread, self).__init__()
+        super(AddThread, self).__init__(daemon=True)
         self.file_path_entry = file_path_entry
         self.file_listbox = file_listbox
         self.item_listbox = item_listbox
@@ -352,7 +352,7 @@ class AddThread(threading.Thread):
 
 class BatchAddThread(threading.Thread):
     def __init__(self, file_path_entry, file_listbox, item_listbox):
-        super(BatchAddThread, self).__init__()
+        super(BatchAddThread, self).__init__(daemon=True)
         self.file_path_entry = file_path_entry
         self.file_listbox = file_listbox
         self.item_listbox = item_listbox
@@ -372,7 +372,7 @@ class BatchAddThread(threading.Thread):
 
 class ProcessThread(threading.Thread):
     def __init__(self, file_listbox):
-        super(ProcessThread, self).__init__()
+        super(ProcessThread, self).__init__(daemon=True)
         self.file_listbox = file_listbox
 
     def run(self):
@@ -602,7 +602,7 @@ def find_items(ref, path, tree_id):
 
             tree_files = [child for child in tree['children'] if child['title'] == file]
 
-            if tree_files:
+            if tree_files and len(tree_files) > 0:
                 as_log("Checking for file-level metadata updates... ")
                 for child in tree_files:
                     record = get_json(child['record_uri'])
@@ -625,13 +625,10 @@ def find_items(ref, path, tree_id):
                                     break
                         if 'file_uri' not in version or version['file_uri'] != file:
                             record['file_versions'][0]['file_uri'] = file
-                            item_type = 'changed'
                         if 'file_format_name' not in version or version['file_format_name'] != file_format_name:
                             record['file_versions'][0]['file_format_name'] = file_format_name
-                            item_type = 'changed'
                         if 'file_size_bytes' not in version or version['file_size_bytes'] != file_size_bytes:
                             record['file_versions'][0]['file_size_bytes'] = file_size_bytes
-                            item_type = 'changed'
                     else:
                         record['file_versions'].append({
                             'jsonmodel_type': "file_version",
