@@ -347,6 +347,7 @@ class AddThread(threading.Thread):
             add_file(file_path, self.file_listbox, self.item_listbox, self.file_path_entry)
 
         unlock_process()
+        self.file_path_entry.entry.delete(0, 'end')
 
 
 class BatchAddThread(threading.Thread):
@@ -366,6 +367,7 @@ class BatchAddThread(threading.Thread):
                 add_file(file.path.replace("\\", '/'), self.file_listbox, self.item_listbox, self.file_path_entry)
 
         unlock_process()
+        self.file_path_entry.entry.delete(0, 'end')
 
 
 class ProcessThread(threading.Thread):
@@ -602,7 +604,7 @@ def find_items(ref, path, tree_id):
 
             if tree_files:
                 as_log("Checking for file-level metadata updates... ")
-                for child in tree['children']:
+                for child in tree_files:
                     record = get_json(child['record_uri'])
 
                     item_type = 'old'
