@@ -751,7 +751,7 @@ def main():
     root.title("Make Digital Object Utility")
     try:
         root.iconbitmap('favicon.ico')
-    except tk.TclError:
+    except Exception:
         pass
 
     setup_gui(root)
