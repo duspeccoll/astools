@@ -749,7 +749,10 @@ def main():
 
     root = tk.Tk()
     root.title("Make Digital Object Utility")
-    root.iconbitmap('favicon.ico')
+    try:
+        root.iconbitmap('favicon.ico')
+    except tk.TclError:
+        pass
 
     setup_gui(root)
     disable_all_buttons(root)
