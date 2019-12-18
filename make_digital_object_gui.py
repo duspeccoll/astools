@@ -5,7 +5,7 @@ import make_digital_object
 from make_digital_object import *
 from asnake.client.web_client import ASnakeAuthError
 import threading
-from requests.exceptions import MissingSchema, InvalidSchema
+from requests.exceptions import MissingSchema, InvalidSchema, ConnectionError
 import configparser
 
 item_dict = dict()
@@ -418,7 +418,6 @@ class CredentialsWindow(tk.Toplevel):
         self.frame.grid(padx=10, pady=10, sticky='EW')
 
         self.title('Credentials')
-        self.iconbitmap('favicon.ico')
         self.configure(width=200)
 
         if url == '':
@@ -483,7 +482,7 @@ class CredentialsWindow(tk.Toplevel):
             self.password_entry.delete(0, 'end')
             self.invalid_login.configure(text="Incorrect username/password.")
 
-        except (MissingSchema, InvalidSchema):
+        except (MissingSchema, InvalidSchema, ConnectionError):
             self.baseurl_entry.delete(0, 'end')
             self.invalid_login.configure(text="Incorrect URL.")
 
@@ -493,7 +492,6 @@ class AskDeleteWindow(tk.Tk):
         global root
         super(AskDeleteWindow, self).__init__()
         self.title('Delete Files?')
-        self.iconbitmap('favicon.ico')
 
         lock_process()
         disable_all_buttons(root)
@@ -749,7 +747,6 @@ def main():
 
     root = tk.Tk()
     root.title("Make Digital Object Utility")
-    root.iconbitmap('favicon.ico')
 
     setup_gui(root)
     disable_all_buttons(root)
