@@ -321,18 +321,10 @@ def main():
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
     if args.batch:
-        try:
-            with open(args.batch, 'r') as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    path = get_path(row[0])
-                    try:
-                        process(path, no_kaltura_id, no_caption)
-                    except DigitalObjectException as e:
-                        print(e.message)
-                        continue
-        except FileNotFoundError as e:
-            print(e)
+        for f in os.scandir(args.path):
+            if f.is_dir():
+                path = get_path(f.path)
+                process(path, no_kaltura_id, no_caption)
     else:
         path = get_path(args.path)
         process(path, no_kaltura_id, no_caption)
