@@ -282,7 +282,7 @@ def get_path(path=None):
         return path
     else:
         while True:
-            path = input('Path to your digital object: ')
+            path = r"../digital_object_workspace/" + input('Path to your digital object: ')
             if path:
                 if not os.path.exists(path):
                     sys.exit("{} does not exist".format(path))
