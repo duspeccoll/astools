@@ -19,6 +19,7 @@ import json
 import magic
 import os
 import sys
+import os.path
 
 from asnake.aspace import ASpace
 
@@ -279,10 +280,10 @@ def check_uri_txt(path):
 # get the digital object's relative path from the user
 def get_path(path=None):
     if path:
-        return path
+        return os.path.join(r"../digital_object_workspace/", path)
     else:
         while True:
-            path = r"../digital_object_workspace/" + input('Path to your digital object: ')
+            path = os.path.join(r"../digital_object_workspace/", input('Path to your digital object: '))
             if path:
                 if not os.path.exists(path):
                     sys.exit("{} does not exist".format(path))
@@ -321,9 +322,9 @@ def main():
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
     if args.batch:
-        for f in os.scandir(args.path):
+        for f in os.scandir(get_path(args.batch)):
             if f.is_dir():
-                path = get_path(f.path)
+                path = f.path
                 process(path, no_kaltura_id, no_caption)
     else:
         path = get_path(args.path)
