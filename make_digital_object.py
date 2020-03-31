@@ -282,6 +282,7 @@ def get_path(path=None):
     if path:
         return os.path.join(r"../digital_object_workspace/", path)
     else:
+        raise Exception
         while True:
             path = os.path.join(r"../digital_object_workspace/", input('Path to your digital object: '))
             if path:
@@ -310,8 +311,8 @@ def main():
     parser = argparse.ArgumentParser(description='Make a digital object based on the contents of a directory')
     parser.add_argument('-u', '--user', help="ArchivesSpace username")
     parser.add_argument('-p', '--password', help="ArchivesSpace password")
-    parser.add_argument('-d', '--path', help="The directory to process")
-    parser.add_argument('-b', '--batch', help="A CSV file containing a list of directories to process in a batch")
+    parser.add_argument('path', help="The directory to process")
+    parser.add_argument('-b', '--batch', action='store_true', help="A CSV file containing a list of directories to process in a batch")
     parser.add_argument('--no_kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
     parser.add_argument('--no_caption', help="Do not prompt the user to provide captions", action='store_true')
 
@@ -322,7 +323,7 @@ def main():
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
     if args.batch:
-        for f in os.scandir(get_path(args.batch)):
+        for f in os.scandir(get_path(args.path)):
             if f.is_dir():
                 path = f.path
                 process(path, no_kaltura_id, no_caption)
