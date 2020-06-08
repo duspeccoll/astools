@@ -26,6 +26,7 @@ from asnake.aspace import ASpace
 DEFAULT_URL = r"http://as02.coalliance.org:8080"
 
 AS = None
+VERBOSE_LOG = False
 
 
 class DigitalObjectException(Exception):
@@ -46,10 +47,11 @@ def post_json(uri, data):
     r = AS.client.post(uri, json=data)
     message = json.loads(r.text)
     if r.status_code == 200:
-        if 'uri' in message:
-            as_log("{}: {}".format(message['status'], message['uri']))
-        else:
-            as_log("{}: {}".format(message['status'], uri))
+        if VERBOSE_LOG:
+            if 'uri' in message:
+                as_log("{}: {}".format(message['status'], message['uri']))
+            else:
+                as_log("{}: {}".format(message['status'], uri))
     else:
         as_log("Error: {}".format(message['error']))
 
@@ -323,11 +325,13 @@ def main():
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
     if args.batch:
-        for f in os.scandir(get_path(args.path)):
+        for f in sorted(os.scandir(get_path(args.path)), key=lambda a: a.name):
             if f.is_dir():
                 path = f.path
+                print("CURRENT ITEM: " + f.name)
                 process(path, no_kaltura_id, no_caption)
     else:
+        print("CURRENT ITEM: " + args.path)
         path = get_path(args.path)
         process(path, no_kaltura_id, no_caption)
 
