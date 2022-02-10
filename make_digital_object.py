@@ -77,7 +77,7 @@ def process_files(ref, path, no_kaltura_id, no_caption):
     tree = get_json("{}/tree".format(ref))
 
     print("Checking files... ")
-    files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f != "uri.txt"]
+    files = [f for f in sorted(os.scandir(path), key=lambda a: a.name) if os.path.isfile(os.path.join(path, f)) and f != "uri.txt"]
     if files:
         for file in files:
             path_to_file = os.path.join(path, file)
