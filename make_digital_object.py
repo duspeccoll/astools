@@ -24,6 +24,7 @@ import os.path
 from asnake.aspace import ASpace
 
 DEFAULT_URL = r"http://as02.coalliance.org:8080"
+TESTING_URL = r"http://dustaff22.coalliance.org:8080"
 
 AS = None
 VERBOSE_LOG = False
@@ -72,7 +73,7 @@ def magic_to_as(file_format_name):
 
 
 # process the files in the path and add digital object components where necessary for each file
-def process_files(ref, path, no_kaltura_id, no_caption):
+def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
     print("Fetching digital object tree... ")
     tree = get_json("{}/tree".format(ref))
 
@@ -137,6 +138,10 @@ def process_files(ref, path, no_kaltura_id, no_caption):
                                 record['file_versions'][0]['caption'] = caption
                                 updates = True
 
+                    if no_publish:
+                        record["publish"] = False
+                        record['file_versions'][0]["publish"] = False
+
                     if updates:
                         print("Updating {}... ".format(file))
                         record['digital_object'] = {'ref': ref}
@@ -149,9 +154,11 @@ def process_files(ref, path, no_kaltura_id, no_caption):
                     'jsonmodel_type': "digital_record_children",
                     'children': [{
                         'title': file,
+                        'publish': True,
                         'file_versions': [{
                             'jsonmodel_type': "file_version",
                             'file_uri': file,
+                            'publish': True,
                             'file_format_name': file_format_name,
                             'file_size_bytes': file_size_bytes,
                             'is_representative': True
@@ -167,6 +174,9 @@ def process_files(ref, path, no_kaltura_id, no_caption):
                     caption = input("> Caption (leave blank for none): ")
                     if caption:
                         data['children'][0]['file_versions'][0]['caption'] = caption
+                if no_publish:
+                    data['children'][0]['publish'] = False
+                    data['children'][0]['file_versions'][0]['publish'] = False
                 post_json("{}/children".format(ref), data)
     else:
         print("No files found.")
@@ -264,7 +274,7 @@ def write_uri_txt(component_id, path):
 # confirm that uri.txt exists and that its URI matches the object (based on the call number provided in the directory
 # name)
 def check_uri_txt(path):
-    component_id = path.split("/")[-1]
+    component_id = os.path.basename(path)
     uri_txt = "{}/uri.txt".format(path)
     as_log("Checking for uri.txt... ")
 
@@ -302,10 +312,10 @@ def as_log(message):
     print(message)
 
 
-def process(path, no_kaltura_id, no_caption):
+def process(path, no_kaltura_id, no_caption, no_publish):
     uri = check_uri_txt(path)
     ref = check_digital_object(uri)
-    process_files(ref, path, no_kaltura_id, no_caption)
+    process_files(ref, path, no_kaltura_id, no_caption, no_publish)
 
 
 def main():
@@ -318,23 +328,29 @@ def main():
     parser.add_argument('-b', '--batch', action='store_true', help="A CSV file containing a list of directories to process in a batch")
     parser.add_argument('--no_kaltura-id', help="Do not prompt the user to provide Kaltura IDs", action='store_true')
     parser.add_argument('--no_caption', help="Do not prompt the user to provide captions", action='store_true')
+    parser.add_argument('--no_publish', help="Do not publish digital object component", action='store_true')
+    parser.add_argument('--test', help="Run on test ArchivesSpace server.", action='store_true')
 
     args = parser.parse_args()
 
-    AS = ASpace(baseurl=DEFAULT_URL, username=args.user, password=args.password)
+    if args.test:
+        AS = ASpace(baseurl=TESTING_URL, username=args.user, password=args.password)
+    else:
+        AS = ASpace(baseurl=DEFAULT_URL, username=args.user, password=args.password)
 
     no_kaltura_id = args.no_kaltura_id
     no_caption = args.no_caption
+    no_publish = args.no_publish
     if args.batch:
         for f in sorted(os.scandir(get_path(args.path)), key=lambda a: a.name):
             if f.is_dir():
                 path = f.path
                 print("CURRENT ITEM: " + f.name)
-                process(path, no_kaltura_id, no_caption)
+                process(path, no_kaltura_id, no_caption, no_publish)
     else:
         print("CURRENT ITEM: " + args.path)
         path = get_path(args.path)
-        process(path, no_kaltura_id, no_caption)
+        process(path, no_kaltura_id, no_caption, no_publish)
 
 
 if __name__ == "__main__":
