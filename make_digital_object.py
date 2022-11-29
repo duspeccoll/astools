@@ -95,7 +95,7 @@ def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
             tree_files = [child for child in tree['children'] if child['title'] == file]
             if tree_files:
                 print("Checking for file-level metadata updates... ")
-                for child in tree['children']:
+                for child in tree_files:
                     record = get_json(child['record_uri'])
                     updates = False
 
