@@ -24,7 +24,7 @@ import os.path
 from asnake.aspace import ASpace
 
 DEFAULT_URL = r"http://as02.coalliance.org:8080"
-TESTING_URL = r"http://dustaff22.coalliance.org:8080"
+TESTING_URL = r"http://as0222.coalliance.org:8080/"
 
 AS = None
 VERBOSE_LOG = False
