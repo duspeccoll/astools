@@ -75,7 +75,7 @@ def magic_to_as(file_format_name):
 # process the files in the path and add digital object components where necessary for each file
 def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
     print("Fetching digital object tree... ")
-    tree = get_json("{}/tree".format(ref))
+    tree = get_json("{}/tree/root".format(ref))
 
     print("Checking files... ")
     files = [f for f in sorted(os.listdir(path), key=lambda a: a) if os.path.isfile(os.path.join(path, f)) and
@@ -92,11 +92,11 @@ def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
 
             file_format_name = magic_to_as(file_format_name)
 
-            tree_files = [child for child in tree['children'] if child['title'] == file]
+            tree_files = [child for child in tree["precomputed_waypoints"][""]['0'] if child['title'] == file]
             if tree_files:
                 print("Checking for file-level metadata updates... ")
                 for child in tree_files:
-                    record = get_json(child['record_uri'])
+                    record = get_json(child['uri'])
                     updates = False
 
                     if 'component_id' not in record:
@@ -145,7 +145,7 @@ def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
                     if updates:
                         print("Updating {}... ".format(file))
                         record['digital_object'] = {'ref': ref}
-                        post_json(child['record_uri'], record)
+                        post_json(child['uri'], record)
                     else:
                         print("No updates to make")
             else:
