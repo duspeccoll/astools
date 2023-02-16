@@ -92,12 +92,13 @@ def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
 
             file_format_name = magic_to_as(file_format_name)
 
-            tree_files = [child for child in tree["precomputed_waypoints"][""]['0'] if child['title'] == file]
-            if tree_files:
+            if tree["child_count"] > 0:
+                tree_files = [child for child in tree["precomputed_waypoints"][""]['0'] if child['title'] == file]
                 print("Checking for file-level metadata updates... ")
                 for child in tree_files:
                     record = get_json(child['uri'])
                     updates = False
+                    updates = True
 
                     if 'component_id' not in record:
                         if not no_kaltura_id:
