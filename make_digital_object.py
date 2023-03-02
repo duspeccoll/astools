@@ -91,14 +91,17 @@ def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
                 file_size_bytes = ''
 
             file_format_name = magic_to_as(file_format_name)
+            #file_format_name = "tiff"
+
+            make_new = True
 
             if tree["child_count"] > 0:
                 tree_files = [child for child in tree["precomputed_waypoints"][""]['0'] if child['title'] == file]
                 print("Checking for file-level metadata updates... ")
                 for child in tree_files:
+                    make_new = False
                     record = get_json(child['uri'])
                     updates = False
-                    updates = True
 
                     if 'component_id' not in record:
                         if not no_kaltura_id:
@@ -149,7 +152,7 @@ def process_files(ref, path, no_kaltura_id, no_caption, no_publish):
                         post_json(child['uri'], record)
                     else:
                         print("No updates to make")
-            else:
+            if make_new:
                 print("Adding file-level metadata to ArchivesSpace... ")
                 data = {
                     'jsonmodel_type': "digital_record_children",
